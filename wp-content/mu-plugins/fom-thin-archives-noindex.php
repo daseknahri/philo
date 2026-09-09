@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Kepoli Thin-Archive Hygiene (noindex + de-sitemap tag/author/date)
+ * Plugin Name: Frame of Mind Thin-Archive Hygiene (noindex + de-sitemap tag/author/date)
  * Description: kepoli had 611 tags for 133 posts — 81 empty, 415 used exactly ONCE, 67 twice — and all ~530
  *   non-empty tag archives were INDEXABLE and listed in the core XML sitemap. That hands Google hundreds of
  *   thin, auto-generated, near-duplicate archive pages (each a single post's excerpt), swamping the 81 real

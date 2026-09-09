@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Kepoli Analytics & Verification
+ * Plugin Name: Frame of Mind Analytics & Verification
  * Description: Consumes the measurement/verification env vars that were passed to the
  *   container but previously read by nothing: search-engine + platform site-verification
  *   meta tags (Google Search Console, Bing, Pinterest), Google Analytics 4 (Consent Mode v2

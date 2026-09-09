@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Kepoli Auto-Publish Overdue Scheduled Posts
+ * Plugin Name: Frame of Mind Auto-Publish Overdue Scheduled Posts
  * Description: Safety net for WordPress's "missed schedule" problem on a low-traffic / Docker host.
  *   WP-Cron is visitor-triggered; with little traffic and no managed system cron, a scheduled post
  *   whose time passes before cron fires gets stuck as 'future' ("Missed schedule"), and a later

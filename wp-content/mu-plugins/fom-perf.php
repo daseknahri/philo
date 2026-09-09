@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Kepoli Performance Trims
+ * Plugin Name: Frame of Mind Performance Trims
  * Description: Small, safe front-end trims for a mobile-first content site (per a 2026-09-03 performance
  *   audit that found the viral-reader theme already well-optimized — system fonts, inlined critical CSS,
  *   textbook LCP preload+fetchpriority, conditional block-CSS dequeue, lazy below-fold, Histats/data-brokers

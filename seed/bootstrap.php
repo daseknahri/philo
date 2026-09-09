@@ -1553,7 +1553,7 @@ function fom_seed_set_site_icon(): void
         $filetype = wp_check_filetype($upload['file'], null);
         $attachment_id = wp_insert_attachment(wp_slash([
             'post_mime_type' => $filetype['type'] ?: 'image/png',
-            'post_title'     => 'Kepoli site icon',
+            'post_title'     => 'Frame of Mind site icon',
             'post_status'    => 'inherit',
         ]), $upload['file']);
         if (is_wp_error($attachment_id)) {

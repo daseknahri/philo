@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Kepoli Empty-Category Noindex
+ * Plugin Name: Frame of Mind Empty-Category Noindex
  * Description: Any category with ZERO posts still resolves at /category/<slug>/ as a live, crawlable but
  *   empty archive — a thin page an AdSense reviewer or Googlebot could hit directly (kepoli has a few
  *   leftovers incl. a Romanian one from the RO→EN conversion). WP core already keeps empty terms out of the

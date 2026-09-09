@@ -1,9 +1,9 @@
 {
   "brand": {
-    "name": "Kepoli",
-    "tagline": "Stories, recipes, and practical kitchen tips for home cooks.",
-    "description": "Kepoli shares food stories, tested recipes, and practical kitchen tips for cooking at home with more confidence and less guesswork.",
-    "site_email": "contact@kepoli.com"
+    "name": "Frame of Mind",
+    "tagline": "Films, philosophy, psychology, and the big ideas that shape how we see the world.",
+    "description": "Frame of Mind explores films, books, philosophy, and psychology — turning deep ideas into clear, honest, human writing for curious readers.",
+    "site_email": "contact@ibnbatoutaweb.com"
   },
   "locales": {
     "public": "en_US",
@@ -11,9 +11,9 @@
     "force_admin": true
   },
   "writer": {
-    "name": "Isalune Merovik",
-    "email": "isalunemerovik@gmail.com",
-    "bio": "Isalune Merovik is the home cook and writer behind Kepoli. She learned to cook the way most people do — out of necessity and stubborn curiosity — and has spent years making the same dishes over and over until she understood why they work. She writes tested recipes, honest kitchen guides, and short essays on the meals worth slowing down for, and cooks every recipe in an ordinary home kitchen before it goes on the site.",
+    "name": "Dasek Nahri",
+    "email": "daseknahri@gmail.com",
+    "bio": "Dasek Nahri writes about film, philosophy, and psychology for Frame of Mind — taking deep ideas and making them simple, human, and worth thinking about. He watches closely, reads widely, and cares less about being clever than about being clear.",
     "social": {
       "x": "",
       "instagram": "",
@@ -22,22 +22,22 @@
       "pinterest": "",
       "website": ""
     },
-    "photo": "isalune-merovik.jpg"
+    "photo": ""
   },
   "assets": {
-    "wordmark": "kepoli-wordmark",
-    "icon": "kepoli-icon",
-    "social_cover": "kepoli-social-cover"
+    "wordmark": "frame-of-mind-wordmark",
+    "icon": "frame-of-mind-icon",
+    "social_cover": "frame-of-mind-social-cover"
   },
   "slugs": {
     "home": "home",
-    "about": "about-kepoli",
+    "about": "about-frame-of-mind",
     "author": "about-the-author",
     "privacy": "privacy-policy",
     "cookies": "cookie-policy",
     "advertising": "advertising-and-consent",
     "editorial": "editorial-policy",
     "terms": "terms-and-conditions",
-    "disclaimer": "disclaimer"
+    "disclaimer": "content-disclaimer"
   }
 }

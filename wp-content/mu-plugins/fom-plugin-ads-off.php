@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Kepoli — disable Automation-Hamri front-end ad output
+ * Plugin Name: Frame of Mind — disable Automation-Hamri front-end ad output
  * Description: Makes fom-adtech.php the SOLE AdSense integration. Forces the
  *   Automation Hamri (wp-automator-pro) plugin to emit ZERO front-end ad code on
  *   kepoli — the head Auto-Ads loader (incl. the stray ?host=ca-host-pub-… tag), the

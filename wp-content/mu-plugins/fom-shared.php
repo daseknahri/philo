@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Kepoli Shared Helpers
+ * Plugin Name: Frame of Mind Shared Helpers
  * Description: Single source of truth for values shared across kepoli mu-plugins. Currently the home-remedy
  *   (YMYL folk-cure) category slug set — referenced by fom-remedy-notice (the medical disclaimer),
  *   fom-noindex-remedies (the review-time noindex shield), and fom-autoseed. Consolidating it here
