@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Food Blog Ad and Verification Helpers
- * Description: Handles ads.txt and lightweight verification output for the food-blog deployment.
+ * Description: Handles ads.txt and lightweight verification output for the Frame of Mind deployment.
  */
 
 if (!defined('ABSPATH')) {

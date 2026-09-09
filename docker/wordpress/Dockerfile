@@ -1,8 +1,8 @@
 FROM wordpress:php8.3-apache
 
-COPY wp-content/themes/viral-reader/ /opt/kepoli/wp-content/themes/viral-reader/
-COPY wp-content/mu-plugins/ /opt/kepoli/wp-content/mu-plugins/
-COPY wp-content/plugins/ /opt/kepoli/wp-content/plugins/
+COPY wp-content/themes/viral-reader/ /opt/fom/wp-content/themes/viral-reader/
+COPY wp-content/mu-plugins/ /opt/fom/wp-content/mu-plugins/
+COPY wp-content/plugins/ /opt/fom/wp-content/plugins/
 COPY seed/ /seed/
 COPY content/ /content/
 COPY docker/wordpress/kepoli-performance.conf /etc/apache2/conf-available/kepoli-performance.conf
