@@ -1,0 +1,4 @@
+services:
+  wordpress:
+    ports:
+      - "${LOCAL_WORDPRESS_PORT:-8080}:80"

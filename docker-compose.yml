@@ -1,0 +1,181 @@
+services:
+  mariadb:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${WORDPRESS_DB_NAME:?WORDPRESS_DB_NAME is required}
+      MYSQL_USER: ${WORDPRESS_DB_USER:?WORDPRESS_DB_USER is required}
+      MYSQL_PASSWORD: ${WORDPRESS_DB_PASSWORD:?WORDPRESS_DB_PASSWORD is required}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+    volumes:
+      - fom_db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "healthcheck.sh --connect --innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  wordpress:
+    build:
+      context: .
+      dockerfile: docker/wordpress/Dockerfile
+    image: fom-wordpress:latest
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: mariadb:3306
+      WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME:?WORDPRESS_DB_NAME is required}
+      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER:?WORDPRESS_DB_USER is required}
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD:?WORDPRESS_DB_PASSWORD is required}
+      SITE_URL: ${SITE_URL:-https://ibnbatoutaweb.com}
+      SITE_EMAIL: ${SITE_EMAIL:-contact@ibnbatoutaweb.com}
+      WRITER_EMAIL: ${WRITER_EMAIL:-isalunemerovik@gmail.com}
+      WP_LOCALE: ${WP_LOCALE:-en_US}
+      WP_ADMIN_LOCALE: ${WP_ADMIN_LOCALE:-en_US}
+      FOM_AUTOSEED_ENABLE: ${FOM_AUTOSEED_ENABLE:-1}
+      FOM_FORCE_RESEED: ${FOM_FORCE_RESEED:-0}
+      FOM_FRESH_CUTOVER: ${FOM_FRESH_CUTOVER:-0}
+      # Opt-in admin recovery (see .env.example): set to 1 for ONE deploy to re-apply the admin
+      # password below + guarantee the administrator role, then set back to 0. The admin creds
+      # must live in THIS (serving) container because the recovery runs in the autoseed mu-plugin.
+      FOM_RESET_ADMIN: ${FOM_RESET_ADMIN:-0}
+      WP_ADMIN_USER: ${WP_ADMIN_USER:-admin}
+      WP_ADMIN_PASSWORD: ${WP_ADMIN_PASSWORD:-}
+      CANONICAL_REDIRECT_HOSTS: ${CANONICAL_REDIRECT_HOSTS:-www.ibnbatoutaweb.com,api.ibnbatoutaweb.com,recipe.ibnbatoutaweb.com}
+      ADSENSE_CLIENT_ID: ${ADSENSE_CLIENT_ID:-ca-pub-1895856024511895}
+      ADSENSE_PUB_ID: ${ADSENSE_PUB_ID:-pub-1895856024511895}
+      ADSENSE_ENABLE: ${ADSENSE_ENABLE:-0}
+      ADSENSE_SLOT_HEADER: ${ADSENSE_SLOT_HEADER:-}
+      ADSENSE_SLOT_AFTER_INTRO: ${ADSENSE_SLOT_AFTER_INTRO:-}
+      ADSENSE_SLOT_MID_CONTENT: ${ADSENSE_SLOT_MID_CONTENT:-}
+      ADSENSE_SLOT_SIDEBAR: ${ADSENSE_SLOT_SIDEBAR:-}
+      ADSENSE_SLOT_BELOW_CONTENT: ${ADSENSE_SLOT_BELOW_CONTENT:-}
+      EZOIC_ADSTXT_ACCOUNT_ID: ${EZOIC_ADSTXT_ACCOUNT_ID:-}
+      EZOIC_ADSTXT_REDIRECT_URL: ${EZOIC_ADSTXT_REDIRECT_URL:-}
+      GA_ENABLE: ${GA_ENABLE:-0}
+      GA_MEASUREMENT_ID: ${GA_MEASUREMENT_ID:-}
+      SEARCH_CONSOLE_VERIFICATION: ${SEARCH_CONSOLE_VERIFICATION:-}
+      BING_SITE_VERIFICATION: ${BING_SITE_VERIFICATION:-}
+      PINTEREST_SITE_VERIFICATION: ${PINTEREST_SITE_VERIFICATION:-}
+      HISTATS_ENABLE: ${HISTATS_ENABLE:-0}
+      HISTATS_CODE_BASE64: ${HISTATS_CODE_BASE64:-}
+      HISTATS_EXCLUDE_ADMINS: ${HISTATS_EXCLUDE_ADMINS:-1}
+      AI_EXTRACTION_ENABLE: ${AI_EXTRACTION_ENABLE:-0}
+      AI_EXTRACTION_PROVIDER: ${AI_EXTRACTION_PROVIDER:-openrouter}
+      AI_EXTRACTION_API_KEY: ${AI_EXTRACTION_API_KEY:-}
+      AI_EXTRACTION_MODEL: ${AI_EXTRACTION_MODEL:-inclusionai/ling-2.6-1t:free}
+      AI_EXTRACTION_TIMEOUT_SECONDS: ${AI_EXTRACTION_TIMEOUT_SECONDS:-14}
+      AI_EXTRACTION_MAX_CHARS: ${AI_EXTRACTION_MAX_CHARS:-9000}
+      AI_EXTRACTION_MAX_TOKENS: ${AI_EXTRACTION_MAX_TOKENS:-1400}
+      # Security hardening baked into wp-config.php at container start (the base image appends
+      # this). DISALLOW_FILE_EDIT blocks the dashboard Theme/Plugin CODE editor — the usual
+      # "admin session compromise -> persistent PHP RCE" path — while leaving plugin install/
+      # update enabled so you can still add Site Kit etc. The X-Forwarded-Proto shim runs BEFORE
+      # FORCE_SSL_ADMIN so admin-over-HTTPS never redirect-loops behind the TLS-terminating
+      # reverse proxy. Guards avoid "already defined" notices.
+      WORDPRESS_CONFIG_EXTRA: |
+        if (isset($$_SERVER['HTTP_X_FORWARDED_PROTO']) && $$_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') { $$_SERVER['HTTPS'] = 'on'; }
+        if (!defined('DISALLOW_FILE_EDIT')) { define('DISALLOW_FILE_EDIT', true); }
+        if (!defined('FORCE_SSL_ADMIN')) { define('FORCE_SSL_ADMIN', true); }
+        if (!defined('WP_POST_REVISIONS')) { define('WP_POST_REVISIONS', 10); }
+        if (!defined('DISABLE_WP_CRON')) { define('DISABLE_WP_CRON', true); }
+      # Per-deploy secret for the manual URL cutover trigger. Unset = the URL trigger stays
+      # DISABLED (the FOM_FRESH_CUTOVER env flag remains the safe reseed path). Set a long
+      # random value in Coolify to enable it.
+      FOM_CUTOVER_SECRET: ${FOM_CUTOVER_SECRET:-}
+    volumes:
+      - fom_wordpress:/var/www/html
+      - fom_uploads:/var/www/html/wp-content/uploads
+    expose:
+      - "80"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost/wp-login.php >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+  # Real cron for WordPress. With DISABLE_WP_CRON=true (set in WORDPRESS_CONFIG_EXTRA),
+  # WordPress no longer spawns cron on page visits — reliable on a low-traffic site,
+  # where visitor-triggered cron silently misses scheduled-post publish times. This
+  # sidecar pings wp-cron.php over the internal compose network on a fixed interval so
+  # scheduled posts publish on time and the automation-hamri Google-Sheet jobs fire
+  # deterministically. BusyBox wget (built into alpine, no package install) keeps it
+  # tiny; the retry loop tolerates WordPress restarts. Interval is WP_CRON_INTERVAL
+  # seconds (default 120). wp-cron.php runs before template_redirect, so the canonical
+  # host redirect never fires on it — the internal http://wordpress/ call is safe.
+  wp-cron:
+    image: alpine:3.20
+    restart: unless-stopped
+    depends_on:
+      wordpress:
+        condition: service_started
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "[wp-cron] sidecar up; pinging http://wordpress/wp-cron.php every ${WP_CRON_INTERVAL:-120}s"
+        while true; do
+          wget -q -T 55 -O /dev/null "http://wordpress/wp-cron.php?doing_wp_cron" 2>/dev/null || echo "[wp-cron] ping failed (WordPress not ready yet?)"
+          sleep "${WP_CRON_INTERVAL:-120}"
+        done
+
+  wp-init:
+    profiles:
+      - seed
+    build:
+      context: .
+      dockerfile: docker/wp-cli/Dockerfile
+    image: fom-wp-cli:latest
+    restart: "no"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      wordpress:
+        condition: service_started
+    environment:
+      WORDPRESS_DB_HOST: mariadb:3306
+      WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME:?WORDPRESS_DB_NAME is required}
+      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER:?WORDPRESS_DB_USER is required}
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD:?WORDPRESS_DB_PASSWORD is required}
+      SITE_URL: ${SITE_URL:-https://ibnbatoutaweb.com}
+      SITE_EMAIL: ${SITE_EMAIL:-contact@ibnbatoutaweb.com}
+      WRITER_EMAIL: ${WRITER_EMAIL:-isalunemerovik@gmail.com}
+      WP_LOCALE: ${WP_LOCALE:-en_US}
+      WP_ADMIN_LOCALE: ${WP_ADMIN_LOCALE:-en_US}
+      FOM_AUTOSEED_ENABLE: ${FOM_AUTOSEED_ENABLE:-1}
+      FOM_FORCE_RESEED: ${FOM_FORCE_RESEED:-0}
+      FOM_FRESH_CUTOVER: ${FOM_FRESH_CUTOVER:-0}
+      CANONICAL_REDIRECT_HOSTS: ${CANONICAL_REDIRECT_HOSTS:-www.ibnbatoutaweb.com,api.ibnbatoutaweb.com,recipe.ibnbatoutaweb.com}
+      WP_ADMIN_USER: ${WP_ADMIN_USER:?WP_ADMIN_USER is required}
+      WP_ADMIN_PASSWORD: ${WP_ADMIN_PASSWORD:?WP_ADMIN_PASSWORD is required}
+      WP_ADMIN_EMAIL: ${WP_ADMIN_EMAIL:?WP_ADMIN_EMAIL is required}
+      ADSENSE_CLIENT_ID: ${ADSENSE_CLIENT_ID:-ca-pub-1895856024511895}
+      ADSENSE_PUB_ID: ${ADSENSE_PUB_ID:-pub-1895856024511895}
+      ADSENSE_ENABLE: ${ADSENSE_ENABLE:-0}
+      EZOIC_ADSTXT_ACCOUNT_ID: ${EZOIC_ADSTXT_ACCOUNT_ID:-}
+      EZOIC_ADSTXT_REDIRECT_URL: ${EZOIC_ADSTXT_REDIRECT_URL:-}
+      GA_ENABLE: ${GA_ENABLE:-0}
+      GA_MEASUREMENT_ID: ${GA_MEASUREMENT_ID:-}
+      SEARCH_CONSOLE_VERIFICATION: ${SEARCH_CONSOLE_VERIFICATION:-}
+      BING_SITE_VERIFICATION: ${BING_SITE_VERIFICATION:-}
+      PINTEREST_SITE_VERIFICATION: ${PINTEREST_SITE_VERIFICATION:-}
+      HISTATS_ENABLE: ${HISTATS_ENABLE:-0}
+      HISTATS_CODE_BASE64: ${HISTATS_CODE_BASE64:-}
+      HISTATS_EXCLUDE_ADMINS: ${HISTATS_EXCLUDE_ADMINS:-1}
+      AI_EXTRACTION_ENABLE: ${AI_EXTRACTION_ENABLE:-0}
+      AI_EXTRACTION_PROVIDER: ${AI_EXTRACTION_PROVIDER:-openrouter}
+      AI_EXTRACTION_API_KEY: ${AI_EXTRACTION_API_KEY:-}
+      AI_EXTRACTION_MODEL: ${AI_EXTRACTION_MODEL:-inclusionai/ling-2.6-1t:free}
+      AI_EXTRACTION_TIMEOUT_SECONDS: ${AI_EXTRACTION_TIMEOUT_SECONDS:-14}
+      AI_EXTRACTION_MAX_CHARS: ${AI_EXTRACTION_MAX_CHARS:-9000}
+      AI_EXTRACTION_MAX_TOKENS: ${AI_EXTRACTION_MAX_TOKENS:-1400}
+    volumes:
+      - fom_wordpress:/var/www/html
+      - fom_uploads:/var/www/html/wp-content/uploads
+
+volumes:
+  fom_db:
+  fom_wordpress:
+  fom_uploads:

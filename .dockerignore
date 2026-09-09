@@ -1,0 +1,13 @@
+.git
+.env
+.env.*
+!.env.example
+node_modules
+wp-content/uploads
+wp-content/cache
+wp-content/upgrade
+coverage
+dist
+build
+.vscode
+.idea

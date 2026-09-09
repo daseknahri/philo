@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Film & TV",
+    "slug": "film",
+    "description": "Deep dives into films and series — hidden meanings, character psychology, and what great stories quietly reveal about being human."
+  },
+  {
+    "name": "Philosophy",
+    "slug": "philosophy",
+    "description": "Big ideas made simple — Stoicism, existentialism, and the questions worth sitting with, brought down to the scale of an ordinary life."
+  },
+  {
+    "name": "Psychology",
+    "slug": "psychology",
+    "description": "Why we do what we do — the mind, emotions, habits, and relationships, explained clearly and without the jargon."
+  },
+  {
+    "name": "Books & Ideas",
+    "slug": "books",
+    "description": "Timeless lessons from great books and thinkers, and the ideas that slowly change how you see the world."
+  },
+  {
+    "name": "Life & Meaning",
+    "slug": "life",
+    "description": "Honest, reflective essays on meaning, choices, and the small moments that end up shaping a life."
+  }
+]

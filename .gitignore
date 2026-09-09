@@ -1,0 +1,22 @@
+.env
+.env.*
+!.env.example
+
+# WordPress runtime data is persisted by Docker volumes.
+wp-content/uploads/
+wp-content/upgrade/
+wp-content/cache/
+
+# OS/editor noise.
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local verification artifacts.
+coverage/
+dist/
+build/
+node_modules/
+.replica-backups/
+site-brief.json
