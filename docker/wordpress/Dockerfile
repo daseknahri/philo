@@ -8,7 +8,7 @@ COPY content/ /content/
 COPY docker/wordpress/kepoli-performance.conf /etc/apache2/conf-available/kepoli-performance.conf
 COPY docker/wordpress/entrypoint.sh /usr/local/bin/kepoli-wordpress-entrypoint
 
-RUN a2enmod headers expires deflate \
+RUN a2enmod rewrite headers expires deflate \
     && a2enconf kepoli-performance \
     # Suppress version disclosure at the source that wins: Debian's security.conf (loaded after
     # our conf) sets ServerTokens OS, and PHP defaults expose_php On (X-Powered-By header).
