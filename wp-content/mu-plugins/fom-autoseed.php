@@ -36,6 +36,47 @@ function fom_autoseed_env_bool(string $key, bool $default = false): bool
 }
 
 /**
+ * Pretty-permalink self-heal. A Coolify redeploy updates code but does NOT run the WP-CLI seed
+ * (`bootstrap.sh`, which runs `wp rewrite structure --hard`). When the site is instead seeded
+ * in-process by the autoseed path below — which requires bootstrap.php directly — the
+ * `permalink_structure` option can end up empty on the live DB. Then WordPress has no pretty
+ * structure to parse against: EVERY pretty URL (category archives, pages, and the plugin's
+ * virtual routes — ads.txt, robots.txt, wp-sitemap.xml) silently falls back to the front page
+ * (HTTP 200, homepage HTML), the homepage emits ugly `?p=` / `?feed=rss2` links, and — the
+ * AdSense-critical symptom — /ads.txt serves the homepage instead of the publisher record.
+ *
+ * This heals it independently of the seed-version guard (which blocks any re-seed once the site
+ * has content): if the site is installed and the structure is not the canonical one, set it and
+ * soft-flush ONCE. The guard is a cheap single option read, so on a healthy site (structure
+ * correct + rewrite_rules present) it is a near-zero no-op; the flush only runs while broken, and
+ * because a soft flush writes the rewrite_rules option, the next request satisfies the guard and
+ * stops flushing. A soft flush (no .htaccess write) is sufficient because routing to index.php is
+ * handled at the Apache vhost level (docker/wordpress/kepoli-performance.conf), not via .htaccess.
+ */
+add_action('init', static function (): void {
+    if (defined('WP_INSTALLING') && WP_INSTALLING) {
+        return;
+    }
+    if (function_exists('is_blog_installed') && !is_blog_installed()) {
+        return;
+    }
+    $canonical = '/%category%/%postname%/';
+    $current = (string) get_option('permalink_structure', '');
+    if ($current === $canonical && '' !== (string) get_option('rewrite_rules', '')) {
+        return; // healthy: canonical structure + rules already present
+    }
+    global $wp_rewrite;
+    if (!($wp_rewrite instanceof WP_Rewrite)) {
+        return;
+    }
+    if ($current !== $canonical) {
+        $wp_rewrite->set_permalink_structure($canonical);
+    }
+    $wp_rewrite->flush_rules(false); // repopulate rewrite_rules; vhost handles the index.php fallback
+    error_log('[fom] permalink self-heal: set structure + flushed (was "' . $current . '").');
+}, 4);
+
+/**
  * Admin recovery (opt-in). WP_ADMIN_PASSWORD is applied ONLY at first install by the WP-CLI seed
  * (`bootstrap.sh`, which is profile:seed and does NOT run on a normal redeploy), so a later
  * Coolify password change never reaches the existing admin — "login from env" then fails. Set
