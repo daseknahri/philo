@@ -32,7 +32,7 @@ function fom_schema_jsonld(): void
 
     $logo = function_exists('get_site_icon_url') ? get_site_icon_url(512) : '';
     if (!$logo) {
-        $logo = get_template_directory_uri() . '/assets/img/fom-icon.png';
+        $logo = get_template_directory_uri() . '/assets/img/frame-of-mind-icon.png';
     }
 
     $graph = [
@@ -126,7 +126,7 @@ function fom_seo_meta_head(): void
     // Social share image: prefer a real landscape cover (>=1200x630) for a proper
     // summary_large_image card; otherwise fall back to the square site icon with a
     // summary card (a square image on a large card gets cropped/downgraded).
-    $cover_rel = '/assets/img/fom-social-cover.jpg';
+    $cover_rel = '/assets/img/frame-of-mind-social-cover.jpg';
     if (file_exists(get_template_directory() . $cover_rel)) {
         $img  = get_template_directory_uri() . $cover_rel;
         $card = 'summary_large_image';

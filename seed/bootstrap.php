@@ -1145,6 +1145,7 @@ function fom_seed_article_content(array $post, array $post_ids, array $category_
 {
     $category_id = $category_ids[$post['category']] ?? 0;
     $category_link = $category_id ? get_category_link($category_id) : home_url('/');
+    $category_name = $category_id ? get_cat_name($category_id) : fom_seed_slug_to_title($post['category']);
     $site_name = fom_seed_site_name($pages);
     $profile = fom_seed_current_site_profile();
     // Link to the pillar category archives (no standalone recipes/guides pages).
@@ -1152,7 +1153,7 @@ function fom_seed_article_content(array $post, array $post_ids, array $category_
     $guides_url = isset($category_ids['tips']) ? get_category_link($category_ids['tips']) : home_url('/');
     $overview_heading = fom_seed_ui('Ce gasesti in ghid', 'What this guide helps with');
     $wrapup_heading = fom_seed_ui('Ce aplici mai intai', 'What to apply first');
-    $related_heading = fom_seed_ui('Retete pe acelasi fir', 'Recipes that fit this guide');
+    $related_heading = fom_seed_ui('Legaturi pe acelasi fir', 'Keep reading');
     $related_intro = fom_seed_ui(
         'Porneste de la aceste retete daca vrei sa transformi ideile din articol in ceva concret de pus pe masa.',
         'Start with these recipes if you want to turn the ideas in this article into something practical on the table.'
@@ -1160,7 +1161,7 @@ function fom_seed_article_content(array $post, array $post_ids, array $category_
     $html = '<p>' . esc_html(fom_seed_post_intro($post)) . '</p>';
     $html .= '<p>' . (
         fom_seed_is_english()
-            ? 'This guide complements the wider <a href="' . esc_url($recipes_url) . '">' . esc_html($site_name) . ' recipe collection</a> and the broader <a href="' . esc_url($guides_url) . '">guides archive</a>.'
+            ? 'Part of ' . esc_html($site_name) . '\'s writing on <a href="' . esc_url($category_link) . '">' . esc_html($category_name) . '</a> — explore more in the <a href="' . esc_url($guides_url) . '">essays archive</a>.'
             : 'Acest ghid completeaza colectia de <a href="' . esc_url($recipes_url) . '">retete ' . esc_html($site_name) . '</a> si arhiva de <a href="' . esc_url($category_link) . '">articole culinare</a>.'
     ) . '</p>';
     $html .= fom_seed_article_takeaways_html($post['takeaways'] ?? []);
@@ -1854,7 +1855,7 @@ if ($about_page_slug !== '' && isset($page_ids[$about_page_slug])) {
 }
 
 $footer_menu = fom_seed_reset_menu('Footer', 'footer');
-foreach (array_unique(array_filter([$about_page_slug, $author_page_slug, 'contact', $privacy_page_slug, $cookies_page_slug, $advertising_page_slug, $editorial_page_slug, $terms_page_slug, $disclaimer_page_slug, 'medical-disclaimer'])) as $slug) {
+foreach (array_unique(array_filter([$about_page_slug, $author_page_slug, 'contact', $privacy_page_slug, $cookies_page_slug, $advertising_page_slug, $editorial_page_slug, $terms_page_slug, $disclaimer_page_slug])) as $slug) {
     if (!isset($page_ids[$slug])) {
         continue;
     }

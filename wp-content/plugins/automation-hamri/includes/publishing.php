@@ -1284,9 +1284,9 @@ function wpap_ajax_bulk_publish_zip() {
     $default_parts = intval( $_POST['num_parts'] ?? 1 );
     if ( $default_parts < 1 ) { $default_parts = 1; }
     if ( $default_parts > 10 ) { $default_parts = 10; }
-    $schedule_window = isset( $_POST['schedule_window'] ) ? (float) $_POST['schedule_window'] : 0;
-    if ( $schedule_window < 0 )   { $schedule_window = 0; }
-    if ( $schedule_window > 168 ) { $schedule_window = 168; }
+    /* Accept a plain hours window (0–168) OR the human "drip:N" mode (N posts/day, daytime 8am–10pm),
+       parity with the REST endpoint. wpap_parse_schedule_window() clamps + sanitizes both forms. */
+    $schedule_window = wpap_parse_schedule_window( $_POST['schedule_window'] ?? 0 );
     $default_category = sanitize_text_field( wp_unslash( $_POST['category'] ?? '' ) );
 
     $created = array();
@@ -2123,4 +2123,119 @@ function wpap_rest_publish( WP_REST_Request $request ) {
         'posts'    => $created,
         'messages' => array_slice( $messages, 0, 50 ),
     ), 200 );
+}
+
+/* ════════════════════════════════════════════
+   NEAR-DUPLICATE CLEANUP — find posts covering the SAME topic under a reworded title (the dupes the
+   exact-title guard can't catch), keep the oldest original, trash the rest. Preview → review → trash.
+   Mirrors batch-enrich/check-against-live.mjs. manage_options + nonce; trash is recoverable.
+════════════════════════════════════════════ */
+
+/* Significant title tokens: lowercase, strip entities/punctuation, drop stopwords + generic filler
+   ("old-fashioned", "remedy", "recipe", "the", …) so two REWORDED posts on the same subject match
+   while distinct posts that merely share a common word do not. */
+function wpap_dup_title_tokens( $title ) {
+    static $stop = null;
+    if ( null === $stop ) {
+        $stop = array_flip( preg_split( '/\s+/', 'a an and the of for to in on with your you what it its is are was how why when this that these those i we my our from as at or but not no do does can cant cannot really actually old old-fashioned older oldest remedy remedies home homemade natural traditional folk grandma grandmother great-grandmother trick tricks secret secrets thing things simple little bit made make making use used using done good better best story kitchen classic vintage way ways before after into out up down more most about know knew known here there they them their just only every any each recipe recipes' ) );
+    }
+    $t = strtolower( (string) $title );
+    $t = preg_replace( '/&#?[a-z0-9]+;/', ' ', $t );
+    $t = preg_replace( '/[^a-z0-9\s-]/', ' ', $t );
+    $t = str_replace( '-', ' ', $t );
+    $out = array();
+    foreach ( preg_split( '/\s+/', (string) $t ) as $w ) {
+        if ( strlen( $w ) > 2 && ! isset( $stop[ $w ] ) ) { $out[ $w ] = true; }
+    }
+    return array_keys( $out );
+}
+
+function wpap_dup_jaccard( $a, $b ) {
+    if ( empty( $a ) || empty( $b ) ) { return 0.0; }
+    $sa = array_flip( $a );
+    $inter = 0;
+    foreach ( $b as $w ) { if ( isset( $sa[ $w ] ) ) { $inter++; } }
+    $union = count( $a ) + count( $b ) - $inter;
+    return $union > 0 ? $inter / $union : 0.0;
+}
+
+/* Cluster posts by title similarity (union-find). Each group of 2+ keeps the OLDEST post; the rest are
+   returned as removable near-duplicates. O(n^2) on token sets, capped at $limit posts. */
+function wpap_find_near_duplicate_groups( $threshold = 0.42, $limit = 3000 ) {
+    global $wpdb;
+    $threshold = max( 0.2, min( 0.95, (float) $threshold ) );
+    $limit     = max( 1, min( 5000, (int) $limit ) );
+    $rows = $wpdb->get_results( $wpdb->prepare(
+        "SELECT ID, post_title, post_date FROM {$wpdb->posts}
+          WHERE post_type='post' AND post_status IN ('publish','future','draft','pending','private')
+            AND TRIM(post_title) <> '' ORDER BY ID ASC LIMIT %d", $limit ) );
+    $rows = array_values( (array) $rows );
+    $n = count( $rows );
+    $tok = array(); $parent = range( 0, max( 0, $n - 1 ) );
+    for ( $i = 0; $i < $n; $i++ ) { $tok[ $i ] = wpap_dup_title_tokens( $rows[ $i ]->post_title ); }
+    $find = function ( $x ) use ( &$parent ) { while ( $parent[ $x ] !== $x ) { $parent[ $x ] = $parent[ $parent[ $x ] ]; $x = $parent[ $x ]; } return $x; };
+    for ( $i = 0; $i < $n; $i++ ) {
+        for ( $j = $i + 1; $j < $n; $j++ ) {
+            if ( wpap_dup_jaccard( $tok[ $i ], $tok[ $j ] ) >= $threshold ) {
+                $ri = $find( $i ); $rj = $find( $j );
+                if ( $ri !== $rj ) { $parent[ $ri ] = $rj; }
+            }
+        }
+    }
+    $clusters = array();
+    for ( $i = 0; $i < $n; $i++ ) { $clusters[ $find( $i ) ][] = $i; }
+    $groups = array();
+    foreach ( $clusters as $members ) {
+        if ( count( $members ) < 2 ) { continue; }
+        usort( $members, function ( $a, $b ) use ( $rows ) { return strcmp( (string) $rows[ $a ]->post_date, (string) $rows[ $b ]->post_date ); } );
+        $keep = $rows[ $members[0] ];
+        $dups = array();
+        $cnt  = count( $members );
+        for ( $k = 1; $k < $cnt; $k++ ) {
+            $r = $rows[ $members[ $k ] ];
+            $dups[] = array(
+                'id'     => (int) $r->ID,
+                'title'  => (string) $r->post_title,
+                'date'   => substr( (string) $r->post_date, 0, 10 ),
+                'status' => (string) get_post_status( $r->ID ),
+            );
+        }
+        $groups[] = array(
+            'keep' => array( 'id' => (int) $keep->ID, 'title' => (string) $keep->post_title, 'date' => substr( (string) $keep->post_date, 0, 10 ) ),
+            'dups' => $dups,
+        );
+    }
+    usort( $groups, function ( $a, $b ) { return count( $b['dups'] ) - count( $a['dups'] ); } );
+    return $groups;
+}
+
+/* AJAX: preview near-duplicate groups (no changes made). */
+add_action( 'wp_ajax_wpap_scan_near_duplicates', 'wpap_ajax_scan_near_duplicates' );
+function wpap_ajax_scan_near_duplicates() {
+    check_ajax_referer( 'wpap_nonce', 'nonce' );
+    if ( ! current_user_can( 'manage_options' ) ) { wp_send_json_error( 'Unauthorized' ); }
+    @set_time_limit( 120 );
+    $threshold = isset( $_POST['threshold'] ) ? (float) $_POST['threshold'] : 0.42;
+    $groups = wpap_find_near_duplicate_groups( $threshold );
+    $total  = 0;
+    foreach ( $groups as $g ) { $total += count( $g['dups'] ); }
+    wp_send_json_success( array( 'groups' => $groups, 'group_count' => count( $groups ), 'dup_count' => $total, 'threshold' => $threshold ) );
+}
+
+/* AJAX: trash the SELECTED near-duplicate post IDs (recoverable). Trusts the reviewed id list — the UI
+   pre-checks the dups and lets the user untick any false positive first. Only trashes real posts. */
+add_action( 'wp_ajax_wpap_trash_near_duplicates', 'wpap_ajax_trash_near_duplicates' );
+function wpap_ajax_trash_near_duplicates() {
+    check_ajax_referer( 'wpap_nonce', 'nonce' );
+    if ( ! current_user_can( 'manage_options' ) ) { wp_send_json_error( 'Unauthorized' ); }
+    @set_time_limit( 300 );
+    $ids = isset( $_POST['ids'] ) ? (array) wp_unslash( $_POST['ids'] ) : array();
+    $ids = array_values( array_unique( array_filter( array_map( 'intval', $ids ) ) ) );
+    $trashed = 0; $deadline = time() + 240;
+    foreach ( $ids as $id ) {
+        if ( time() > $deadline ) { break; }
+        if ( 'post' !== get_post_type( $id ) ) { continue; }
+        if ( wp_trash_post( $id ) ) { $trashed++; }
+    }
+    wp_send_json_success( array( 'trashed' => (int) $trashed, 'requested' => count( $ids ) ) );
 }

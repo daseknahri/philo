@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Food Blog Newsletter Signups
+ * Plugin Name: Frame of Mind Newsletter Signups
  * Description: Stores lightweight newsletter signups inside WordPress admin.
  */
 
@@ -33,7 +33,7 @@ function fom_newsletter_site_name(): string
 {
     $profile = get_option('fom_site_profile');
     $name = is_array($profile) ? trim((string) ($profile['brand']['name'] ?? '')) : '';
-    return $name !== '' ? $name : (get_bloginfo('name') ?: 'Food Blog');
+    return $name !== '' ? $name : (get_bloginfo('name') ?: 'Frame of Mind');
 }
 
 function fom_newsletter_consent_text(): string

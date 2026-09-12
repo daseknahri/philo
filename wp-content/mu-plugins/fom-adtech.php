@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Food Blog Ad and Verification Helpers
+ * Plugin Name: Frame of Mind Ad & Verification Helpers
  * Description: Handles ads.txt and lightweight verification output for the Frame of Mind deployment.
  */
 
@@ -52,13 +52,13 @@ function fom_mu_locale_to_language_tag(string $locale): string
 function fom_mu_site_name(): string
 {
     $name = trim((string) fom_mu_profile_value(['brand', 'name'], get_bloginfo('name')));
-    return $name !== '' ? $name : 'Food Blog';
+    return $name !== '' ? $name : 'Frame of Mind';
 }
 
 function fom_mu_brand_description(): string
 {
     $description = trim((string) fom_mu_profile_value(['brand', 'description'], get_bloginfo('description')));
-    return $description !== '' ? $description : 'Recipes, kitchen guides, and practical home cooking notes.';
+    return $description !== '' ? $description : 'Film, philosophy, psychology, books, and the ideas that shape how we see the world.';
 }
 
 function fom_mu_public_locale(): string
@@ -93,7 +93,6 @@ function fom_mu_redirect_hosts(string $canonical_host): array
     $hosts = [
         'www.' . $canonical_host,
         'api.' . $canonical_host,
-        'recipe.' . $canonical_host,
     ];
 
     $configured_hosts = array_filter(array_map(

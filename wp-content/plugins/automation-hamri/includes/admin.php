@@ -129,6 +129,10 @@ function wpap_render_settings() {
             /* Global default first-comment template (Distribution Hub / export). {{link}} is
                replaced by each post's link; a per-post _wpap_fb_comment override wins. */
             'fb_comment_template' => mb_substr( sanitize_textarea_field( (string) wp_unslash( $_POST['wpap_fb_comment_template'] ?? '' ) ), 0, 2000 ),
+            /* Facebook identifiers (both optional, default empty = nothing emitted). Domain-verification is
+               output site-wide (Meta crawls the homepage <head>); fb:app_id only on this plugin's post pages. */
+            'fb_domain_verify' => preg_replace( '/[^A-Za-z0-9]/', '', (string) wp_unslash( $_POST['wpap_fb_domain_verify'] ?? '' ) ),
+            'fb_app_id'        => preg_replace( '/[^0-9]/', '', (string) wp_unslash( $_POST['wpap_fb_app_id'] ?? '' ) ),
         ), false );
 
         /* Image optimization: convert imported JPEG/PNG to WebP (default ON). */
@@ -679,6 +683,80 @@ function wpap_render_settings() {
                 </tr>
             </table>
 
+            <h2 style="margin-top:32px;">Facebook identifiers</h2>
+            <p class="description" style="max-width:760px;">Both optional and empty by default &mdash; nothing is added to your pages until you fill one in. Purge any page cache after saving.</p>
+            <table class="form-table">
+                <tr>
+                    <th scope="row">Domain verification</th>
+                    <td><input type="text" name="wpap_fb_domain_verify" class="regular-text" value="<?php echo esc_attr( (string) ( $copts_ui['fb_domain_verify'] ?? '' ) ); ?>" placeholder="e.g. a1b2c3d4e5f6g7h8" autocomplete="off" />
+                        <p class="description">Proves to Meta that you own this domain, so you control how its links preview on Facebook. In Meta Business Suite &rarr; Settings &rarr; Brand safety &amp; suitability &rarr; Domains, add your domain, choose <em>Add a meta-tag</em>, and paste ONLY the tag&rsquo;s <code>content</code> value here (not the whole tag). Output site-wide &mdash; Meta crawls the homepage <code>&lt;head&gt;</code>.</p></td>
+                </tr>
+                <tr>
+                    <th scope="row">App ID <span style="font-weight:400;color:#666">(<code>fb:app_id</code>)</span></th>
+                    <td><input type="text" name="wpap_fb_app_id" class="regular-text" value="<?php echo esc_attr( (string) ( $copts_ui['fb_app_id'] ?? '' ) ); ?>" placeholder="numeric app id" inputmode="numeric" autocomplete="off" />
+                        <p class="description">Optional. If you have a Meta for Developers app, paste its numeric App ID to silence the Sharing Debugger&rsquo;s &ldquo;missing <code>fb:app_id</code>&rdquo; warning and tie shares to your app for Insights. Output only on this plugin&rsquo;s post pages. Leave blank if you don&rsquo;t have one.</p></td>
+                </tr>
+            </table>
+
+            <h2 style="margin-top:32px;">Duplicate cleanup</h2>
+            <p class="description" style="max-width:860px;">Finds posts that cover the <strong>same topic under a reworded title</strong> &mdash; the near-duplicates the exact-title guard can&rsquo;t catch (e.g. &ldquo;Rice Water for Tender Skin&rdquo; vs &ldquo;The Humblest Medicine: Rice Water&hellip;&rdquo;). It groups them, keeps the <strong>oldest original</strong>, and lets you move the rest to <strong>Trash</strong> (recoverable). Duplicate/thin content is a common AdSense &amp; SEO problem &mdash; but always <strong>review the list and untick any false positive</strong> (two different recipes can share words) before trashing.</p>
+            <p>
+                <button type="button" class="button button-primary" id="wpap-dup-scan">&#128269; Scan for duplicates</button>
+                <label style="margin-left:12px">Sensitivity <input type="number" id="wpap-dup-threshold" value="0.42" min="0.2" max="0.95" step="0.02" class="small-text" title="Lower catches looser matches (more false positives); higher is stricter. 0.42 is a good default." /></label>
+                <button type="button" class="button" id="wpap-dup-trash" style="display:none;margin-left:12px">&#129529; Move checked to Trash</button>
+                <span id="wpap-dup-status" style="margin-left:8px;color:#334155;"></span>
+            </p>
+            <div id="wpap-dup-results" style="max-width:920px"></div>
+            <script>
+            (function(){
+                var ajaxUrl = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>,
+                    nonce   = <?php echo wp_json_encode( wp_create_nonce( 'wpap_nonce' ) ); ?>;
+                var scanBtn=document.getElementById('wpap-dup-scan'), trashBtn=document.getElementById('wpap-dup-trash'),
+                    out=document.getElementById('wpap-dup-results'), statusEl=document.getElementById('wpap-dup-status'),
+                    thr=document.getElementById('wpap-dup-threshold');
+                if(!scanBtn) return;
+                function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
+                scanBtn.addEventListener('click', function(){
+                    scanBtn.disabled=true; statusEl.textContent='Scanning…'; out.innerHTML=''; trashBtn.style.display='none';
+                    fetch(ajaxUrl,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+                        body:'action=wpap_scan_near_duplicates&nonce='+encodeURIComponent(nonce)+'&threshold='+encodeURIComponent(thr.value||'0.42')})
+                    .then(function(r){return r.json();}).then(function(res){
+                        scanBtn.disabled=false;
+                        if(!res||!res.success){statusEl.textContent='Error: '+((res&&res.data)||'failed');return;}
+                        var d=res.data;
+                        if(!d.group_count){statusEl.textContent='No near-duplicates found. ✅';return;}
+                        statusEl.textContent=d.group_count+' duplicate group(s) · '+d.dup_count+' post(s) can be trashed (checked below). KEEP = the oldest original.';
+                        var html='';
+                        d.groups.forEach(function(g){
+                            html+='<div style="border:1px solid #e2e8f0;border-radius:6px;padding:10px 12px;margin:8px 0;background:#fff;">';
+                            html+='<div style="color:#0f766e"><strong>KEEP</strong> <span style="color:#64748b">['+esc(g.keep.date)+']</span> '+esc(g.keep.title)+'</div>';
+                            g.dups.forEach(function(dp){
+                                html+='<div style="margin-top:4px"><label><input type="checkbox" class="wpap-dup-cb" checked value="'+esc(dp.id)+'"> <strong style="color:#b91c1c">TRASH</strong> <span style="color:#64748b">['+esc(dp.date)+' · '+esc(dp.status)+']</span> '+esc(dp.title)+'</label></div>';
+                            });
+                            html+='</div>';
+                        });
+                        out.innerHTML=html; trashBtn.style.display='';
+                    }).catch(function(){scanBtn.disabled=false;statusEl.textContent='Request failed.';});
+                });
+                trashBtn.addEventListener('click', function(){
+                    var checked=[].slice.call(document.querySelectorAll('.wpap-dup-cb:checked'));
+                    var ids=checked.map(function(c){return c.value;});
+                    if(!ids.length){statusEl.textContent='Nothing checked.';return;}
+                    if(!window.confirm('Move '+ids.length+' post(s) to Trash? They stay recoverable in Posts → Trash.'))return;
+                    trashBtn.disabled=true; statusEl.textContent='Trashing '+ids.length+'…';
+                    fetch(ajaxUrl,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+                        body:'action=wpap_trash_near_duplicates&nonce='+encodeURIComponent(nonce)+'&'+ids.map(function(i){return 'ids[]='+encodeURIComponent(i);}).join('&')})
+                    .then(function(r){return r.json();}).then(function(res){
+                        trashBtn.disabled=false;
+                        if(!res||!res.success){statusEl.textContent='Error: '+((res&&res.data)||'failed');return;}
+                        statusEl.textContent='Trashed '+res.data.trashed+' post(s). ✅ Recoverable from Posts → Trash. Re-scan to confirm.';
+                        checked.forEach(function(c){var box=c.closest('div');if(box){box.style.opacity=0.4;}c.disabled=true;c.checked=false;});
+                        trashBtn.style.display='none';
+                    }).catch(function(){trashBtn.disabled=false;statusEl.textContent='Request failed.';});
+                });
+            })();
+            </script>
+
             <h2 style="margin-top:32px;">ads.txt (AdSense)</h2>
             <p class="description" style="max-width:760px;">
                 Paste your ad networks' <code>ads.txt</code> lines. Served automatically at
@@ -882,7 +960,7 @@ function wpap_render_bundle() {
         <tr><th scope="row"><label for="wpap-bundle-file">Bundle <code>.zip</code></label></th><td><input type="file" id="wpap-bundle-file" accept=".zip,application/zip,application/x-zip-compressed" <?php disabled( ! $has_zip ); ?> /></td></tr>
         <tr><th scope="row"><label for="wpap-bundle-cat">Category <span style="font-weight:400;color:#666">(optional)</span></label></th><td><input type="text" id="wpap-bundle-cat" class="regular-text" placeholder="name or id" /> <span class="description">Applied when an item has none.</span></td></tr>
         <tr><th scope="row"><label for="wpap-bundle-parts">Pages per post</label></th><td><input type="number" id="wpap-bundle-parts" min="1" max="10" value="1" class="small-text" /> <span class="description">Split each post into N pages (1 = single page). A <code>[nextpage]</code> token in the content still wins.</span></td></tr>
-        <tr><th scope="row"><label for="wpap-bundle-hours">Spread over (hours)</label></th><td><input type="number" id="wpap-bundle-hours" min="0" max="168" value="0" class="small-text" /> <span class="description">0 = publish all immediately; otherwise schedule across the next N hours.</span></td></tr>
+        <tr><th scope="row"><label for="wpap-bundle-hours">Schedule</label></th><td><input type="text" id="wpap-bundle-hours" value="0" class="regular-text" style="max-width:140px" /> <span class="description"><code>0</code> = publish now &middot; a number = spread evenly across that many hours (0&ndash;168) &middot; <code>drip:3</code> = ~3 posts/day, daytime only (08:00&ndash;22:00) &mdash; the most human, AdSense-friendly cadence.</span></td></tr>
       </table>
       <p><button id="wpap-bundle-go" class="button button-primary" <?php disabled( ! $has_zip ); ?>>Publish bundle</button> &nbsp;<span id="wpap-bundle-status" style="font-weight:600"></span></p>
       <div id="wpap-bundle-results" style="margin-top:16px"></div>

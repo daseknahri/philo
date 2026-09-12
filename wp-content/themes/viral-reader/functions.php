@@ -15,7 +15,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 if ( ! defined( 'VR_VERSION' ) ) {
-	define( 'VR_VERSION', '1.9.12' );
+	define( 'VR_VERSION', '1.9.13' );
 }
 
 /* ─────────────────────────────────────────────
@@ -992,15 +992,23 @@ function vr_jump_to_section( $content ) {
 		|| false !== strpos( $content, 'vr-toc' ) ) {
 		return $content;
 	}
+	// Prefer <h2> section headings; fall back to <h3> for essays outlined entirely at H3
+	// (H1 = title, sections skip H2) so a long, deeply-outlined piece still gets its TOC —
+	// the single most useful long-read aid on mobile.
+	$tag = 'h2';
 	if ( ! preg_match_all( '/<h2\b[^>]*>.*?<\/h2>/is', $content, $probe ) || count( $probe[0] ) < 3 ) {
-		return $content;
+		if ( preg_match_all( '/<h3\b[^>]*>.*?<\/h3>/is', $content, $probe3 ) && count( $probe3[0] ) >= 3 ) {
+			$tag = 'h3';
+		} else {
+			return $content;
+		}
 	}
 
 	$used  = array();
 	$items = '';
 	$content = preg_replace_callback(
-		'/<h2\b([^>]*)>(.*?)<\/h2>/is',
-		function ( $mm ) use ( &$used, &$items ) {
+		'/<' . $tag . '\b([^>]*)>(.*?)<\/' . $tag . '>/is',
+		function ( $mm ) use ( &$used, &$items, $tag ) {
 			$attrs = $mm[1];
 			$inner = $mm[2];
 			$text  = trim( html_entity_decode( wp_strip_all_tags( $inner ), ENT_QUOTES, 'UTF-8' ) );
@@ -1021,7 +1029,7 @@ function vr_jump_to_section( $content ) {
 					$id = $base . '-' . $n;
 					$n++;
 				}
-				$out = '<h2' . $attrs . ' id="' . esc_attr( $id ) . '">' . $inner . '</h2>';
+				$out = '<' . $tag . $attrs . ' id="' . esc_attr( $id ) . '">' . $inner . '</' . $tag . '>';
 			}
 			$used[ $id ] = true;
 			$items      .= '<li><a href="#' . esc_attr( $id ) . '">' . esc_html( $text ) . '</a></li>';

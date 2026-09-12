@@ -3,8 +3,8 @@ Theme Name: Viral Reader
 Theme URI: https://wa.me/212637122491
 Author: Oussama Hamri
 Author URI: https://wa.me/212637122491
-Description: A warm, editorial, mobile-first blog theme for viral story & health content — cream "paper" palette, serif reading column with a sans UI, a cinematic hero, a sticky reading sidebar, and ad-native spacing. Fast and light (system fonts, no jQuery, light mode). Pairs with the WP Automator Pro plugin: header/sidebar/footer ad zones and native in-content ad styling. English throughout.
-Version: 1.9.12
+Description: A warm, editorial, mobile-first blog theme for long-form writing — cream "paper" palette, serif reading column with a sans UI, a cinematic hero, a sticky reading sidebar, quote/pull-quote styling, and ad-native spacing. Fast and light (system fonts, no jQuery, light mode). Pairs with the WP Automator Pro plugin: header/sidebar/footer ad zones and native in-content ad styling. English throughout.
+Version: 1.9.13
 Requires at least: 5.5
 Tested up to: 6.6
 Requires PHP: 7.2
@@ -350,6 +350,14 @@ body.nav-open .nav-toggle span::after{top:0;transform:rotate(-45deg)}
 .wp-block-gallery img,.entry-content .gallery img{width:100%;height:100%;object-fit:cover;border-radius:var(--radius-sm)}
 .entry-content .wp-block-button__link{display:inline-block;font-family:var(--sans);font-weight:700;font-size:.92rem;letter-spacing:.02em;background:var(--copper);color:#fff;border-radius:999px;padding:.7em 1.4em;text-decoration:none;transition:background-color .15s}
 .entry-content .wp-block-button__link:hover{background:var(--clay);color:#fff}
+/* Quotes — long-form essays lean on quotations (dialogue, philosophers, book passages).
+   Match the generic blockquote for wp-block-quote, promote large/pullquotes to a centred
+   serif statement, and style <cite> attribution with an em-dash so a source reads clearly. */
+.entry-content .wp-block-quote{border-inline-start:3px solid var(--copper);margin-inline-start:0;padding-block:.5em;padding-inline:1.2em 0;color:var(--muted);font-size:1.12rem;font-style:italic}
+.entry-content .wp-block-quote.is-style-large,.entry-content .wp-block-pullquote{border-inline-start:0;border-block:2px solid var(--copper);margin-inline:0;padding:.9em 0;text-align:center;font-family:var(--serif);font-style:italic;font-size:clamp(1.35rem,3.4vw,1.75rem);line-height:1.32;color:var(--ink)}
+.entry-content .wp-block-pullquote p,.entry-content .wp-block-quote.is-style-large p{margin:0 0 .3em}
+.entry-content blockquote cite,.entry-content .wp-block-quote cite,.entry-content .wp-block-pullquote cite{display:block;font-family:var(--sans);font-style:normal;font-size:.85rem;letter-spacing:.02em;color:var(--muted);margin-top:.6em}
+.entry-content blockquote cite::before,.entry-content .wp-block-quote cite::before,.entry-content .wp-block-pullquote cite::before{content:"\2014\00a0"}
 /* Wide/many-column tables scroll inside their own box instead of widening the page. */
 .entry-content table{display:block;width:max-content;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
 
@@ -598,7 +606,13 @@ body .wpap-ad-label{color:var(--ad-label)}
      doesn't render ~2x tall (measured ~436px, ~53% of the viewport) above the first
      line of body. Also crops the external (_wpap_image_url) fallback consistently.
      Desktop keeps the native aspect (the :not(.wp-post-image) rule at ~line 265). */
-  .entry-featured-media img{aspect-ratio:16/10;object-fit:cover}
+  .entry-featured-media img{aspect-ratio:var(--vr-featured-ratio,16/10);object-fit:cover;object-position:var(--vr-featured-pos,50% 50%)}
+
+  /* Keep a readable heading hierarchy on phones: the global H2 clamp floors near 1.5rem
+     while H3 stays 1.4rem, leaving almost no visual step for a multi-level essay outline.
+     Widen the gap so a reader can skim sections vs sub-points on a small screen. */
+  .entry-content h2{font-size:1.6rem}
+  .entry-content h3{font-size:1.2rem}
 
   /* Remaining sub-44px tap targets → parity with the nav/share/footer targets above.
      Breadcrumbs (were ~34x17), tag pills (~100x30), author-social pills (~30 tall),
@@ -609,7 +623,9 @@ body .wpap-ad-label{color:var(--ad-label)}
   .vr-author-social__link{display:inline-flex;align-items:center;min-height:44px;padding-inline:16px}
   .comment-reply-link,.comment-metadata a{display:inline-flex;align-items:center;min-height:44px;padding-block:.35em}
 }
-@media(max-width:380px){
+@media(max-width:480px){
+  /* Essay/article titles need more width to read than short recipe titles; go single-column
+     on phones so "Keep reading" cards aren't squeezed to a ~170px unreadable column. */
   .related-grid{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}

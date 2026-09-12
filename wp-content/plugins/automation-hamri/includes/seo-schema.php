@@ -735,3 +735,35 @@ function wpap_related_posts_block( $content ) {
    "earnings at risk" throttle. Configured under Settings.
 ════════════════════════════════════════════ */
 add_action( 'init', 'wpap_serve_ads_txt', 0 );
+
+/* ════════════════════════════════════════════
+   13. FACEBOOK IDENTIFIERS (opt-in, both default empty = emit nothing)
+   Stored in wpap_content_opts (Settings → Facebook identifiers):
+   - facebook-domain-verification: emitted SITE-WIDE — Meta verifies a domain by crawling the
+     HOMEPAGE <head> for this tag, so it must appear everywhere (incl. the front page).
+   - fb:app_id: an Open Graph property, emitted only on THIS plugin's post pages (gated on the
+     _wpap_smart_link marker, alongside the OG block) — silences the Sharing Debugger's last
+     "missing fb:app_id" warning and ties shares to a Meta app for Insights.
+   The wp_head hook is registered ONLY when at least one value is set (passive when unused).
+   Values are sanitised on save AND re-escaped here (defence in depth).
+════════════════════════════════════════════ */
+$wpap_fb_ids = get_option( 'wpap_content_opts', array() );
+if ( is_array( $wpap_fb_ids ) && ( ! empty( $wpap_fb_ids['fb_domain_verify'] ) || ! empty( $wpap_fb_ids['fb_app_id'] ) ) ) {
+    add_action( 'wp_head', 'wpap_fb_ids_head', 5 );
+}
+function wpap_fb_ids_head() {
+    $c = get_option( 'wpap_content_opts', array() );
+    if ( ! is_array( $c ) ) { return; }
+    $dv  = isset( $c['fb_domain_verify'] ) ? preg_replace( '/[^A-Za-z0-9]/', '', (string) $c['fb_domain_verify'] ) : '';
+    $app = isset( $c['fb_app_id'] )        ? preg_replace( '/[^0-9]/', '',      (string) $c['fb_app_id'] )        : '';
+    $out = '';
+    if ( '' !== $dv ) {
+        $out .= '<meta name="facebook-domain-verification" content="' . esc_attr( $dv ) . '">' . "\n";
+    }
+    if ( '' !== $app && is_singular( 'post' ) && '' !== (string) get_post_meta( (int) get_queried_object_id(), '_wpap_smart_link', true ) ) {
+        $out .= '<meta property="fb:app_id" content="' . esc_attr( $app ) . '">' . "\n";
+    }
+    if ( '' !== $out ) {
+        echo "\n<!-- Automation Hamri Facebook IDs -->\n" . $out; // phpcs:ignore WordPress.Security.EscapeOutput -- values escaped above
+    }
+}

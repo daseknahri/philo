@@ -70,6 +70,8 @@ function wpap_handle_import_settings() {
             'disable_comments' => ! empty( $c['disable_comments'] ) ? 1 : 0,
             'clean_media'      => ! empty( $c['clean_media'] ) ? 1 : 0,
             'fb_comment_template' => mb_substr( sanitize_textarea_field( (string) ( $c['fb_comment_template'] ?? '' ) ), 0, 2000 ),
+            'fb_domain_verify' => preg_replace( '/[^A-Za-z0-9]/', '', (string) ( $c['fb_domain_verify'] ?? '' ) ),
+            'fb_app_id'        => preg_replace( '/[^0-9]/', '', (string) ( $c['fb_app_id'] ?? '' ) ),
         ), false );
     }
     if ( isset( $opts['wpap_indexnow'] ) && is_array( $opts['wpap_indexnow'] ) ) {

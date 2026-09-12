@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Food Blog Auto Seed
+ * Plugin Name: Frame of Mind Auto Seed
  * Description: Self-heals a fresh WordPress install when the one-shot WP-CLI seed did not run in the host platform.
  */
 
@@ -62,7 +62,9 @@ add_action('init', static function (): void {
     }
     $canonical = '/%category%/%postname%/';
     $current = (string) get_option('permalink_structure', '');
-    if ($current === $canonical && '' !== (string) get_option('rewrite_rules', '')) {
+    // rewrite_rules is stored as an ARRAY (or false/'' when unset) — use !empty(), never a
+    // (string) cast, which would emit an "Array to string conversion" warning on every request.
+    if ($current === $canonical && ! empty( get_option('rewrite_rules', '') )) {
         return; // healthy: canonical structure + rules already present
     }
     global $wp_rewrite;
