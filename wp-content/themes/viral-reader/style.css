@@ -4,7 +4,7 @@ Theme URI: https://wa.me/212637122491
 Author: Oussama Hamri
 Author URI: https://wa.me/212637122491
 Description: A warm, editorial, mobile-first blog theme for long-form writing — cream "paper" palette, serif reading column with a sans UI, a cinematic hero, a sticky reading sidebar, quote/pull-quote styling, and ad-native spacing. Fast and light (system fonts, no jQuery, light mode). Pairs with the WP Automator Pro plugin: header/sidebar/footer ad zones and native in-content ad styling. English throughout.
-Version: 1.9.13
+Version: 1.9.14
 Requires at least: 5.5
 Tested up to: 6.6
 Requires PHP: 7.2
@@ -31,6 +31,36 @@ Tags: blog, news, two-columns, right-sidebar, custom-menu, custom-logo, featured
   --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   color-scheme:light;
 }
+
+/* ===== Cinematic skin (opt-in: add_filter('vr_skin','cinematic')) =====
+   A moody, film-forward dark palette — warm near-black grounds, warm off-white
+   reading ink, brightened copper accent. Pure token swap + a few dark-surface
+   fixes (hairline ring on media so bright images don't float, readable form
+   fields). The default light "paper" skin is untouched. Contrast checked:
+   ink #f2ece0 on paper #131110 ≈ 15:1; muted #a89e8b ≈ 6.6:1; links/eyebrow
+   copper tones clear 4.5:1. */
+body.vr-skin-cinematic{
+  --paper:#131110; --paper-soft:#1c1813; --surface:#211c16;
+  --ink:#f2ece0; --muted:#a89e8b;
+  --olive:#8b965a; --olive-dark:#e6c39a; --copper:#d0703f; --clay:#e78f52; --sage:#33372a;
+  --eyebrow:#e2965f; --line:rgba(240,230,214,.11); --ad-label:#b39a72;
+  --footer:#0e0c0b; --footer-ink:rgba(242,236,224,.80); --footer-hover:#e6a06a;
+  --hero-bg:#0f0c0a; --hero-eyebrow:#e6a06a; --hero-rule:#d0703f; --on-dark:#f5efe4;
+  --shadow:0 12px 34px rgba(0,0,0,.48); --shadow-lift:0 22px 56px rgba(0,0,0,.62);
+  color-scheme:dark;
+  background:var(--paper);
+}
+body.vr-skin-cinematic .post-card__media,
+body.vr-skin-cinematic .related-card__media,
+body.vr-skin-cinematic .entry-featured-media img,
+body.vr-skin-cinematic .home-hero{box-shadow:inset 0 0 0 1px rgba(240,230,214,.08)}
+body.vr-skin-cinematic .entry-content img{box-shadow:0 0 0 1px rgba(240,230,214,.07)}
+body.vr-skin-cinematic input,
+body.vr-skin-cinematic textarea,
+body.vr-skin-cinematic select{background:var(--paper-soft);color:var(--ink);border:1px solid var(--line)}
+body.vr-skin-cinematic input::placeholder,
+body.vr-skin-cinematic textarea::placeholder{color:var(--muted)}
+body.vr-skin-cinematic .vr-btn{box-shadow:0 8px 22px -8px rgba(208,112,63,.6)}
 
 /* ===== Base ===== */
 *,*::before,*::after{box-sizing:border-box}
@@ -183,6 +213,41 @@ body.nav-open .nav-toggle span::after{top:0;transform:rotate(-45deg)}
 .category-card:hover h3{color:var(--copper)}
 .category-card:hover h3::after{opacity:1;transform:translateX(0)}
 .category-card p{color:var(--muted);font-size:.9rem;line-height:1.45;margin:0}
+
+/* ===== Brand hero (front page, pre-content) ===== */
+.home-hero--brand{min-height:clamp(360px,54vh,540px);display:flex;align-items:center}
+.home-hero--brand .home-hero__inner{max-width:720px}
+.home-hero--brand h1{font-size:clamp(2.5rem,6.4vw,4.4rem)}
+
+/* ===== Topic tiles (cover-art category showcase) ===== */
+.topic-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
+.topic-tile{position:relative;display:flex;min-height:236px;border-radius:var(--radius);overflow:hidden;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);transition:transform .18s,box-shadow .18s,border-color .18s}
+.topic-tile.has-cover{background-image:linear-gradient(180deg,rgba(13,11,9,.12),rgba(13,11,9,.6) 55%,rgba(13,11,9,.92)),var(--cover);background-size:cover;background-position:center;border-color:transparent}
+.topic-tile:hover{transform:translateY(-4px);box-shadow:var(--shadow-lift);border-color:var(--copper);text-decoration:none}
+.topic-tile:active{transform:translateY(-1px)}
+.topic-tile:focus-within{border-color:var(--copper);box-shadow:var(--shadow-lift)}
+.topic-tile__body{position:relative;z-index:1;margin-top:auto;padding:20px 22px;display:flex;flex-direction:column;gap:6px;color:var(--ink)}
+.topic-tile.has-cover .topic-tile__body{color:#fff}
+.topic-tile__count{font-family:var(--sans);font-size:.7rem;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--eyebrow)}
+.topic-tile.has-cover .topic-tile__count{color:var(--hero-eyebrow)}
+.topic-tile h3{margin:0;font-size:1.5rem;line-height:1.14;color:inherit}
+.topic-tile p{margin:0;font-size:.92rem;line-height:1.45;color:var(--muted)}
+.topic-tile.has-cover p{color:rgba(255,253,248,.86)}
+.topic-tile__cta{font-family:var(--sans);font-size:.8rem;font-weight:700;letter-spacing:.02em;color:var(--eyebrow);display:inline-flex;align-items:center;gap:6px;margin-top:4px;opacity:0;transform:translateY(4px);transition:opacity .18s,transform .18s}
+.topic-tile.has-cover .topic-tile__cta{color:var(--hero-eyebrow)}
+.topic-tile__cta svg{width:15px;height:15px}
+.topic-tile:hover .topic-tile__cta,.topic-tile:focus-within .topic-tile__cta{opacity:1;transform:translateY(0)}
+
+/* ===== Category cover hero (archive header) ===== */
+.category-hero{position:relative;overflow:hidden;border-radius:var(--radius);background-color:var(--hero-bg);background-image:var(--cover);background-size:cover;background-position:center;margin:22px 0 8px;min-height:clamp(230px,36vh,360px);display:flex;align-items:flex-end}
+.category-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,11,9,.22),rgba(13,11,9,.55) 55%,rgba(13,11,9,.9))}
+.category-hero__inner{position:relative;z-index:1;padding:clamp(24px,4vw,46px);max-width:760px;color:#fff}
+.category-hero__inner .vr-breadcrumbs,.category-hero__inner .vr-breadcrumbs a{color:rgba(255,253,248,.82)}
+.category-hero__inner .vr-breadcrumbs a:hover{color:#fff}
+.category-hero__inner .vr-breadcrumbs [aria-current="page"]{color:#fff}
+.category-hero h1{color:#fff;font-size:clamp(2rem,4.8vw,3.3rem);margin:0 0 .3em;text-shadow:0 2px 30px rgba(0,0,0,.42)}
+.category-hero__desc{color:rgba(255,253,248,.9);font-size:1.05rem;line-height:1.5;max-width:56ch}
+.category-hero__desc p{margin:0}
 
 /* ===== Section heading ===== */
 .section-head{margin-bottom:26px;max-width:60ch}

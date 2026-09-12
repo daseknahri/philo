@@ -15,8 +15,31 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 if ( ! defined( 'VR_VERSION' ) ) {
-	define( 'VR_VERSION', '1.9.13' );
+	define( 'VR_VERSION', '1.9.14' );
 }
+
+/* ─────────────────────────────────────────────
+   Skin system
+   A site selects a visual skin via the 'vr_skin' filter; the theme stamps it as a
+   body class (vr-skin-<name>) and style.css defines the matching token overrides.
+   Default 'paper' = the light warm-editorial palette (no override block needed).
+   A per-site plugin opts into another skin, e.g.:
+     add_filter( 'vr_skin', fn() => 'cinematic' );
+   Kept sanitized to a slug so the class is always safe.
+───────────────────────────────────────────── */
+function vr_active_skin() {
+	$skin = sanitize_html_class( (string) apply_filters( 'vr_skin', 'paper' ) );
+	return '' !== $skin ? $skin : 'paper';
+}
+add_filter( 'body_class', function ( $classes ) {
+	$classes[] = 'vr-skin-' . vr_active_skin();
+	return $classes;
+} );
+
+/* Cleaner archive titles: drop WordPress's "Category:" / "Tag:" / "Author:" prefix — the
+   breadcrumb already says where you are, and a bare topic name reads far better in the
+   cover-banner headline. */
+add_filter( 'get_the_archive_title_prefix', '__return_empty_string' );
 
 /* ─────────────────────────────────────────────
    Setup
@@ -61,7 +84,40 @@ function vr_external_image_url( $post_id = 0 ) {
 }
 function vr_has_post_image( $post_id = 0 ) {
 	$post_id = $post_id ? (int) $post_id : (int) get_the_ID();
-	return has_post_thumbnail( $post_id ) || '' !== vr_external_image_url( $post_id );
+	return has_post_thumbnail( $post_id ) || '' !== vr_external_image_url( $post_id ) || '' !== vr_fallback_image_url( $post_id );
+}
+
+/* Final image fallback (filterable, default NONE). When a post has neither a local
+   thumbnail nor an external image, a site can supply a designed placeholder — e.g. a
+   per-category cover or a brand default — so cards/hero/single never show a blank media
+   box. Default '' preserves the original "no image ⇒ no media box" behavior (kepoli). */
+function vr_fallback_image_url( $post_id = 0 ) {
+	$post_id = $post_id ? (int) $post_id : (int) get_the_ID();
+	$url = apply_filters( 'vr_fallback_image_url', '', $post_id );
+	return ( is_string( $url ) && preg_match( '#^https?://#i', $url ) ) ? $url : '';
+}
+
+/* Front-page hero background (filterable, default NONE): a site can supply a standing
+   hero image so the homepage has a cinematic banner even before any post exists. */
+function vr_hero_image_url() {
+	$url = apply_filters( 'vr_hero_image_url', '' );
+	return ( is_string( $url ) && preg_match( '#^https?://#i', $url ) ) ? $url : '';
+}
+
+/* Per-category cover art (filterable, default NONE): a site maps a term to a cover
+   image, used as the category-archive header banner and as topic-tile backgrounds. */
+function vr_category_cover_url( $term_id = 0 ) {
+	$term_id = $term_id ? (int) $term_id : (int) get_queried_object_id();
+	$url = apply_filters( 'vr_category_cover_url', '', $term_id );
+	return ( is_string( $url ) && preg_match( '#^https?://#i', $url ) ) ? $url : '';
+}
+
+/* Categories to feature in the homepage "Explore by topic" showcase. Defaults to the
+   top non-empty categories; a site can override (e.g. always show its fixed pillars,
+   with covers, even before they have posts) via the 'vr_showcase_categories' filter. */
+function vr_showcase_categories( $n = 6 ) {
+	$cats = apply_filters( 'vr_showcase_categories', vr_top_categories( $n ), $n );
+	return is_array( $cats ) ? $cats : array();
 }
 /* Echo the post's featured <img>: local thumbnail (srcset-aware, via core) when
    present, else the external fallback as a plain <img>. $attr mirrors
@@ -73,6 +129,7 @@ function vr_the_post_image( $size = 'large', $attr = array(), $post_id = 0 ) {
 		return;
 	}
 	$ext = vr_external_image_url( $post_id );
+	if ( '' === $ext ) { $ext = vr_fallback_image_url( $post_id ); }
 	if ( '' === $ext ) { return; }
 	/* array_key_exists (not isset) so a caller-supplied alt="" (decorative) is
 	   respected rather than replaced with the title. */

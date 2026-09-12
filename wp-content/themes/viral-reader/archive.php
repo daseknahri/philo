@@ -9,15 +9,29 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 get_header();
 ?>
+<?php $vr_cover = is_category() ? vr_category_cover_url() : ''; ?>
 <div class="vr-container">
-	<header class="archive-header">
-		<?php vr_breadcrumbs(); ?>
-		<h1><?php the_archive_title(); ?></h1>
-		<?php
-		$vr_desc = get_the_archive_description();
-		if ( $vr_desc ) { echo '<div>' . wp_kses_post( $vr_desc ) . '</div>'; }
-		?>
-	</header>
+	<?php if ( '' !== $vr_cover ) : ?>
+		<header class="category-hero" style="--cover:url('<?php echo esc_url( $vr_cover ); ?>')">
+			<div class="category-hero__inner">
+				<?php vr_breadcrumbs(); ?>
+				<h1><?php the_archive_title(); ?></h1>
+				<?php
+				$vr_desc = get_the_archive_description();
+				if ( $vr_desc ) { echo '<div class="category-hero__desc">' . wp_kses_post( $vr_desc ) . '</div>'; }
+				?>
+			</div>
+		</header>
+	<?php else : ?>
+		<header class="archive-header">
+			<?php vr_breadcrumbs(); ?>
+			<h1><?php the_archive_title(); ?></h1>
+			<?php
+			$vr_desc = get_the_archive_description();
+			if ( $vr_desc ) { echo '<div>' . wp_kses_post( $vr_desc ) . '</div>'; }
+			?>
+		</header>
+	<?php endif; ?>
 
 	<?php if ( have_posts() ) : ?>
 		<div class="post-grid section--tight">

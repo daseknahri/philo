@@ -49,23 +49,35 @@ $vr_hero   = ( ! $vr_paged && ! empty( $vr_posts ) ) ? $vr_posts[0] : null;
 			</div>
 		</section>
 	</div>
-<?php elseif ( empty( $vr_posts ) || $vr_paged ) : ?>
-	<?php /* Give the front page a valid single-h1 outline whenever there is no hero:
-	   either genuinely no posts, OR a paged view (/page/2+) which intentionally shows
-	   no hero. Without this, paged posts-on-home views would render only h2s. */ ?>
+<?php elseif ( empty( $vr_posts ) ) : ?>
+	<?php
+	/* Pre-content brand hero: no posts yet, but the homepage should still open with a
+	   cinematic banner rather than a bare "no stories" line. Uses the standing hero
+	   image (vr_hero_image_url filter) behind the site name + tagline. Single h1 = name. */
+	$vr_hero_img = vr_hero_image_url();
+	$vr_tagline  = get_bloginfo( 'description', 'display' );
+	?>
+	<div class="vr-container">
+		<section class="home-hero home-hero--brand">
+			<?php if ( '' !== $vr_hero_img ) : ?>
+				<img class="home-hero__img" src="<?php echo esc_url( $vr_hero_img ); ?>" alt="" loading="eager" fetchpriority="high" decoding="async" />
+			<?php endif; ?>
+			<div class="home-hero__inner">
+				<p class="eyebrow"><?php esc_html_e( 'Welcome', 'viral-reader' ); ?></p>
+				<h1><?php echo esc_html( get_bloginfo( 'name' ) ); ?></h1>
+				<?php if ( $vr_tagline ) : ?><p><?php echo esc_html( $vr_tagline ); ?></p><?php endif; ?>
+				<a class="vr-btn" href="#explore"><?php esc_html_e( 'Explore the topics', 'viral-reader' ); ?> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+			</div>
+		</section>
+	</div>
+<?php elseif ( $vr_paged ) : ?>
+	<?php /* Paged posts-on-home (/page/N): a simple header keeps a valid single-h1 outline. */ ?>
 	<div class="vr-container section--tight">
 		<header class="archive-header">
 			<h1><?php echo esc_html( get_bloginfo( 'name' ) ); ?></h1>
 			<?php $vr_tagline = get_bloginfo( 'description', 'display' ); ?>
 			<?php if ( $vr_tagline ) : ?><p><?php echo esc_html( $vr_tagline ); ?></p><?php endif; ?>
 		</header>
-		<?php if ( empty( $vr_posts ) ) : ?>
-			<?php /* Truly no posts: give the same empty-state affordance the other templates do. */ ?>
-			<div class="vr-empty">
-				<p><?php esc_html_e( 'No stories yet — check back soon.', 'viral-reader' ); ?></p>
-				<?php get_search_form(); ?>
-			</div>
-		<?php endif; ?>
 	</div>
 <?php endif; ?>
 
@@ -83,18 +95,26 @@ if ( is_page() ) {
 }
 ?>
 
-<?php $vr_cats = vr_top_categories( 8 ); ?>
+<?php $vr_cats = vr_showcase_categories( 6 ); ?>
 <?php if ( ! empty( $vr_cats ) ) : ?>
-	<section class="category-band section--tight">
+	<section id="explore" class="category-band section">
 		<div class="vr-container">
 			<div class="section-head"><p class="eyebrow"><?php esc_html_e( 'Browse', 'viral-reader' ); ?></p><h2><?php esc_html_e( 'Explore by topic', 'viral-reader' ); ?></h2></div>
-			<div class="category-list">
+			<div class="topic-grid">
 				<?php foreach ( $vr_cats as $vr_c ) : ?>
-					<?php $vr_cl = get_category_link( $vr_c->term_id ); ?>
-					<a class="category-card" href="<?php echo esc_url( is_wp_error( $vr_cl ) ? '#' : $vr_cl ); ?>">
-						<span class="count"><?php /* translators: %d: number of stories */ echo esc_html( sprintf( _n( '%d story', '%d stories', (int) $vr_c->count, 'viral-reader' ), (int) $vr_c->count ) ); ?></span>
-						<h3><?php echo esc_html( $vr_c->name ); ?></h3>
-						<?php if ( $vr_c->description ) : ?><p><?php echo esc_html( wp_trim_words( $vr_c->description, 16, '…' ) ); ?></p><?php endif; ?>
+					<?php
+					$vr_cl    = get_category_link( $vr_c->term_id );
+					$vr_cover = vr_category_cover_url( $vr_c->term_id );
+					?>
+					<a class="topic-tile<?php echo '' !== $vr_cover ? ' has-cover' : ''; ?>" href="<?php echo esc_url( is_wp_error( $vr_cl ) ? '#' : $vr_cl ); ?>"<?php echo '' !== $vr_cover ? ' style="--cover:url(\'' . esc_url( $vr_cover ) . '\')"' : ''; ?>>
+						<span class="topic-tile__body">
+							<?php if ( (int) $vr_c->count > 0 ) : ?>
+								<span class="topic-tile__count"><?php /* translators: %d: number of stories */ echo esc_html( sprintf( _n( '%d story', '%d stories', (int) $vr_c->count, 'viral-reader' ), (int) $vr_c->count ) ); ?></span>
+							<?php endif; ?>
+							<h3><?php echo esc_html( $vr_c->name ); ?></h3>
+							<?php if ( $vr_c->description ) : ?><p><?php echo esc_html( wp_trim_words( $vr_c->description, 15, '…' ) ); ?></p><?php endif; ?>
+							<span class="topic-tile__cta"><?php esc_html_e( 'Explore', 'viral-reader' ); ?> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+						</span>
 					</a>
 				<?php endforeach; ?>
 			</div>
