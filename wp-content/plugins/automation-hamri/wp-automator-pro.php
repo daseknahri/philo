@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Automation Hamri
  * Description: An advanced AI-powered bulk content generator for WordPress that automates SEO articles, internal linking, and multi-engine image sourcing. Optimized for high-traffic niches.
- * Version:     9.39.0
+ * Version:     9.40.0
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author:      Oussama Hamri
@@ -621,7 +621,7 @@ function wpap_bulk_max_items() {
     return (int) apply_filters( 'wpap_bulk_max_items', 300 );
 }
 
-define( 'WPAP_VERSION', '9.39.0' );
+define( 'WPAP_VERSION', '9.40.0' );
 define( 'WPAP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WPAP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'WPAP_TABLE',      'wpap_generated_posts' );

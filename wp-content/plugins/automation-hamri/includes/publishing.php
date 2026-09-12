@@ -312,7 +312,12 @@ function wpap_publish_article( array $item, array $opts = array() ) {
         ? trim( (string) $opts['default_category'] ) : '';
     $source_key       = ( isset( $opts['source_key'] ) && is_scalar( $opts['source_key'] ) )
         ? (string) $opts['source_key'] : '';
-    $author           = isset( $opts['author'] ) ? (int) $opts['author'] : get_current_user_id();
+    /* Author: an explicit opt wins; otherwise a site can pin bulk-published posts to its
+       real bylined writer (not whatever admin account is logged in) via the
+       'wpap_default_author' filter — important for a single-author blog's E-E-A-T, so the
+       byline, author archive, and Person schema all point at the writer. Default: the
+       current user (unchanged behavior when no filter is set). */
+    $author           = isset( $opts['author'] ) ? (int) $opts['author'] : (int) apply_filters( 'wpap_default_author', get_current_user_id() );
     $force_kses        = ! empty( $opts['force_kses'] );   /* automation forces kses on external content */
 
     /* ── title (legacy 'caption' fallback preserved for parity) ── */
