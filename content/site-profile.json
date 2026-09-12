@@ -10,6 +10,9 @@
     "admin": "en_US",
     "force_admin": true
   },
+  "nav": {
+    "primary_categories": 6
+  },
   "writer": {
     "name": "Dasek Nahri",
     "email": "daseknahri@gmail.com",
@@ -38,6 +41,8 @@
     "advertising": "advertising-and-consent",
     "editorial": "editorial-policy",
     "terms": "terms-and-conditions",
-    "disclaimer": "content-disclaimer"
+    "disclaimer": "content-disclaimer",
+    "articles": "articles",
+    "contact": "contact"
   }
 }

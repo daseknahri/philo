@@ -4,7 +4,7 @@ Theme URI: https://wa.me/212637122491
 Author: Oussama Hamri
 Author URI: https://wa.me/212637122491
 Description: A warm, editorial, mobile-first blog theme for long-form writing — cream "paper" palette, serif reading column with a sans UI, a cinematic hero, a sticky reading sidebar, quote/pull-quote styling, and ad-native spacing. Fast and light (system fonts, no jQuery, light mode). Pairs with the WP Automator Pro plugin: header/sidebar/footer ad zones and native in-content ad styling. English throughout.
-Version: 1.9.14
+Version: 1.9.15
 Requires at least: 5.5
 Tested up to: 6.6
 Requires PHP: 7.2
@@ -248,6 +248,12 @@ body.nav-open .nav-toggle span::after{top:0;transform:rotate(-45deg)}
 .category-hero h1{color:#fff;font-size:clamp(2rem,4.8vw,3.3rem);margin:0 0 .3em;text-shadow:0 2px 30px rgba(0,0,0,.42)}
 .category-hero__desc{color:rgba(255,253,248,.9);font-size:1.05rem;line-height:1.5;max-width:56ch}
 .category-hero__desc p{margin:0}
+
+/* 404 topic chips */
+.vr-404-topics{margin:1.6em 0 0}
+.vr-404-topics ul{list-style:none;margin:.4em 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.vr-404-topics a{display:inline-flex;align-items:center;min-height:40px;font-family:var(--sans);font-size:.9rem;font-weight:600;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:.4em 1.1em;color:var(--ink);transition:color .15s,border-color .15s}
+.vr-404-topics a:hover{border-color:var(--copper);color:var(--copper);text-decoration:none}
 
 /* ===== Section heading ===== */
 .section-head{margin-bottom:26px;max-width:60ch}

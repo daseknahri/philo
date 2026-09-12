@@ -250,6 +250,22 @@ function wpap_seo_head() {
             }
         }
     }
+    /* Final fallback so a post published without a featured image (or _wpap_image_url)
+       never shares as a blank card. Prefers the theme's filterable fallback image (e.g.
+       a per-category cover), then a site-supplied default via filter, then the site icon.
+       All optional: a bare install with none of these degrades to no og:image, exactly as
+       before, rather than a broken one. */
+    if ( '' === $img ) {
+        if ( function_exists( 'vr_fallback_image_url' ) ) {
+            $img = (string) vr_fallback_image_url( $post_id );
+        }
+        if ( '' === $img ) {
+            $img = (string) apply_filters( 'wpap_default_og_image', '', $post_id );
+        }
+        if ( '' === $img && function_exists( 'get_site_icon_url' ) ) {
+            $img = (string) get_site_icon_url( 512 );
+        }
+    }
     /* (#3) Keep the social image scheme consistent with the https canonical/og:url:
        an externally-imported _wpap_image_url may be http, which Facebook/Twitter
        downgrade and browsers flag as mixed content. Upgrade ONLY when the site is
@@ -332,8 +348,24 @@ function wpap_seo_head() {
     if ( $avatar ) { $person['image'] = array( '@type' => 'ImageObject', 'url' => $avatar ); }
     $bio = (string) get_the_author_meta( 'description', $author_num );
     if ( '' !== trim( $bio ) ) { $person['description'] = wpap_ld_text( $bio ); }
+    /* sameAs = the author's REAL external profiles. Prefer the theme's collected social
+       links (vr_social_* contact-method meta); the raw user_url is often set to the on-site
+       author/bio page, which is not a valid sameAs, so only include it when it is genuinely
+       an off-site URL. */
+    $same = array();
+    if ( function_exists( 'vr_author_social_links' ) ) {
+        foreach ( (array) vr_author_social_links( $author_num ) as $lnk ) {
+            if ( is_array( $lnk ) ) { $lnk = isset( $lnk['url'] ) ? $lnk['url'] : ''; }
+            if ( is_string( $lnk ) && preg_match( '#^https?://#i', $lnk ) ) { $same[] = $lnk; }
+        }
+    }
     $author_site = (string) get_the_author_meta( 'user_url', $author_num );
-    if ( '' !== trim( $author_site ) ) { $person['sameAs'] = array( $author_site ); }
+    $site_host   = (string) ( wp_parse_url( home_url(), PHP_URL_HOST ) ?: '' );
+    if ( '' !== trim( $author_site ) && ( '' === $site_host || false === strpos( $author_site, $site_host ) ) ) {
+        $same[] = $author_site;
+    }
+    $same = array_values( array_unique( array_filter( $same ) ) );
+    if ( ! empty( $same ) ) { $person['sameAs'] = $same; }
     $graph[] = $person;
 
     /* Primary image node (referenced by @id from WebPage + Article). */

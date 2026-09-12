@@ -383,6 +383,10 @@ function fom_seed_upsert_page(array $page, int $author_id): int
         update_post_meta((int) $id, '_fom_meta_description', sanitize_text_field((string) $page['meta_description']));
     }
 
+    if (!empty($page['seo_title'])) {
+        update_post_meta((int) $id, '_fom_seo_title', sanitize_text_field((string) $page['seo_title']));
+    }
+
     return (int) $id;
 }
 
@@ -438,8 +442,8 @@ function fom_seed_ensure_author(array $pages, string $site_name, array $profile 
     $description = trim((string) fom_seed_profile_value($profile, ['writer', 'bio'], ''));
     if ($description === '') {
         $description = fom_seed_is_english()
-            ? sprintf('Author at %s. Writes home-cooking recipes, food guides, and practical kitchen articles.', $site_name)
-            : sprintf('Autoare %s. Scrie retete pentru acasa, articole culinare si ghiduri practice.', $site_name);
+            ? sprintf('Writer at %s.', $site_name)
+            : sprintf('Autoare la %s.', $site_name);
     }
 
     wp_update_user([
@@ -1678,6 +1682,9 @@ foreach ($pages as $page) {
 
 update_option('show_on_front', 'page');
 update_option('page_on_front', $page_ids[$home_page_slug] ?? (count($page_ids) > 0 ? (int) reset($page_ids) : 0));
+if (isset($page_ids['articles'])) {
+    update_option('page_for_posts', (int) $page_ids['articles']);
+}
 
 /* ── Automation Hamri plugin defaults (fill-if-empty; never clobbers a configured site) ──
    The plugin ships with everything OFF/blank; on a FRESH kepoli deploy these bring it up
@@ -1832,6 +1839,7 @@ if ($recipes_page_slug !== '' && isset($page_ids[$recipes_page_slug])) {
     fom_seed_menu_page($primary_menu, fom_seed_page_title($pages, $recipes_page_slug), $page_ids[$recipes_page_slug]);
 }
 
+$primary_cat_cap = max(1, (int) fom_seed_profile_value($site_profile, ['nav', 'primary_categories'], 3));
 $primary_category_count = 0;
 foreach ($categories as $category) {
     $slug = (string) ($category['slug'] ?? '');
@@ -1842,9 +1850,13 @@ foreach ($categories as $category) {
     fom_seed_menu_category($primary_menu, (string) ($category['name'] ?? fom_seed_slug_to_title($slug)), $category_ids[$slug]);
     $primary_category_count++;
 
-    if ($primary_category_count >= 3) {
+    if ($primary_category_count >= $primary_cat_cap) {
         break;
     }
+}
+
+if (isset($page_ids['articles'])) {
+    fom_seed_menu_page($primary_menu, fom_seed_page_title($pages, 'articles'), $page_ids['articles']);
 }
 
 if ($guides_page_slug !== '' && isset($page_ids[$guides_page_slug])) {
@@ -1873,7 +1885,6 @@ foreach ($categories as $category) {
 }
 
 update_option('default_category', $default_category_id);
-update_option('posts_per_page', 9);
 update_option('fom_seed_version', fom_seed_target_version());
 flush_rewrite_rules(false);
 

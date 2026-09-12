@@ -120,10 +120,16 @@ if (pluginAds === null) {
 /* ── 5. Required AdSense trust pages ──────────────────────────────────────── */
 const pages = readJson('content/pages.json') || [];
 const slugs = new Set(pages.map((p) => String(p.slug || '')));
+const sp = readJson('content/site-profile.json') || {};
+const profileSlugs = sp.slugs || {};
+// Trust-page slugs are site-specific (this repo is re-seeded per site), so read
+// them from content/site-profile.json's `slugs` map instead of hardcoding one
+// site's literals — a required key with no profile entry still surfaces as
+// "missing" below rather than silently dropping out of the check.
+const trustSlugKeys = ['about', 'author', 'privacy', 'cookies', 'advertising', 'editorial', 'terms', 'disclaimer'];
 const required = [
-  'privacy-policy', 'cookie-policy', 'terms-and-conditions',
-  'advertising-and-consent', 'editorial-policy',
-  'about-kepoli', 'about-the-author', 'contact', 'disclaimer',
+  ...trustSlugKeys.map((k) => String(profileSlugs[k] || `(missing profile.slugs.${k})`)),
+  String(profileSlugs.contact || 'contact'),
 ];
 const missing = required.filter((s) => !slugs.has(s));
 if (missing.length === 0) pass(`All ${required.length} AdSense trust/policy pages present.`);
@@ -148,7 +154,6 @@ if (posts.length === 0) {
 }
 
 /* ── 7. Author legitimacy (the "who is behind this" approval axis) ─────────── */
-const sp = readJson('content/site-profile.json') || {};
 const writer = sp.writer || sp.author || {};
 if (String(writer.name || '').trim() && String(writer.bio || '').trim().length >= 120) {
   pass(`Author identity present (${writer.name}) with a substantive bio.`);

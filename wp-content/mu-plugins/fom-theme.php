@@ -66,16 +66,33 @@ add_filter( 'vr_fallback_image_url', static function ( $url, $post_id ) {
 	return fom_theme_asset_uri( 'fom-default-featured.jpg' );
 }, 10, 2 );
 
-/* Always show the five pillars in the homepage showcase — in editorial order, with their
-   covers — even before they have any posts (the default only lists non-empty categories). */
-add_filter( 'vr_showcase_categories', static function ( $default ) {
-	$order = array_keys( fom_pillar_covers() );
-	$terms = array();
-	foreach ( $order as $slug ) {
-		$t = get_term_by( 'slug', $slug, 'category' );
-		if ( $t instanceof WP_Term ) {
-			$terms[] = $t;
+/* The five pillar terms, in editorial order (memoized). */
+function fom_pillar_terms() {
+	static $terms = null;
+	if ( null === $terms ) {
+		$terms = array();
+		foreach ( array_keys( fom_pillar_covers() ) as $slug ) {
+			$t = get_term_by( 'slug', $slug, 'category' );
+			if ( $t instanceof WP_Term ) {
+				$terms[] = $t;
+			}
 		}
 	}
+	return $terms;
+}
+
+/* Always show the five pillars — in editorial order, even before they have posts — in the
+   homepage showcase AND everywhere the theme lists "top categories" (footer Explore column,
+   sidebar Topics block, mobile fallback menu). The theme's defaults use hide_empty, which
+   renders an empty/uneven list pre-launch and while posts ramp up unevenly. */
+add_filter( 'vr_showcase_categories', static function ( $default ) {
+	$terms = fom_pillar_terms();
 	return ! empty( $terms ) ? $terms : $default;
 } );
+add_filter( 'vr_top_categories', static function ( $default, $n ) {
+	$terms = fom_pillar_terms();
+	if ( empty( $terms ) ) {
+		return $default;
+	}
+	return array_slice( $terms, 0, max( 0, (int) $n ) );
+}, 10, 2 );

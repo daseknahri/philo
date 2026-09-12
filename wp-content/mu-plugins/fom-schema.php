@@ -133,7 +133,7 @@ function fom_seo_meta_head(): void
     } else {
         $img = function_exists('get_site_icon_url') ? get_site_icon_url(512) : '';
         if (!$img) {
-            $img = get_template_directory_uri() . '/assets/img/fom-icon.png';
+            $img = get_template_directory_uri() . '/assets/img/frame-of-mind-icon.png';
         }
         $card = 'summary';
     }
@@ -150,6 +150,87 @@ function fom_seo_meta_head(): void
     $out .= '<meta name="twitter:title" content="' . esc_attr($title) . '">' . "\n";
     $out .= '<meta name="twitter:description" content="' . esc_attr($desc) . '">' . "\n";
     $out .= '<meta name="twitter:image" content="' . esc_url($img) . '">' . "\n";
+    echo $out;
+}
+
+/**
+ * Render the curated SEO title (_fom_seo_title) as the document <title> for pages and
+ * posts that set one. Without this, WordPress core builds <title> from post_title/site
+ * name and the authored seo_title values in content/pages.json are never used (and the
+ * static front page's title collapses to just the site name). og:title / twitter:title,
+ * built from wp_get_document_title() above, inherit this automatically. Defers to a real
+ * SEO plugin (which sets $title before this runs).
+ */
+add_filter('pre_get_document_title', 'fom_seo_document_title', 20);
+function fom_seo_document_title(string $title): string
+{
+    if ($title !== '') {
+        return $title; // already set (SEO plugin or another filter)
+    }
+    if (defined('WPSEO_VERSION') || defined('RANK_MATH_VERSION') || function_exists('seopress_init') || defined('AIOSEO_VERSION')) {
+        return $title;
+    }
+    if (is_admin() || is_feed() || !is_singular()) {
+        return $title;
+    }
+    $seo = (string) get_post_meta(get_queried_object_id(), '_fom_seo_title', true);
+    return $seo !== '' ? $seo : $title;
+}
+
+/**
+ * Meta description + Open Graph + Twitter Card for CATEGORY and TAG archives. Core +
+ * fom_seo_meta_head cover singular/front/pages, and the plugin covers managed posts, so
+ * archives would otherwise ship with no description and no social image. Uses the term
+ * description for copy and the per-category cover art (vr_category_cover_url) for the
+ * share image. Defers to a real SEO plugin.
+ */
+add_action('wp_head', 'fom_seo_archive_meta_head', 4);
+function fom_seo_archive_meta_head(): void
+{
+    if (defined('WPSEO_VERSION') || defined('RANK_MATH_VERSION') || function_exists('seopress_init') || defined('AIOSEO_VERSION')) {
+        return;
+    }
+    if (is_admin() || is_feed() || !(is_category() || is_tag())) {
+        return;
+    }
+    $term = get_queried_object();
+    if (!($term instanceof WP_Term)) {
+        return;
+    }
+    $desc = trim(wp_strip_all_tags((string) term_description($term)));
+    if ($desc === '') {
+        $desc = sprintf('%s on %s.', single_term_title('', false), get_bloginfo('name'));
+    }
+    $desc  = trim(preg_replace('/\s+/', ' ', $desc));
+    $title = wp_get_document_title();
+    $link  = get_term_link($term);
+    $url   = is_wp_error($link) ? home_url('/') : $link;
+
+    $img = function_exists('vr_category_cover_url') ? (string) vr_category_cover_url($term->term_id) : '';
+    if ($img === '') {
+        $cover_rel = '/assets/img/frame-of-mind-social-cover.jpg';
+        $img = file_exists(get_template_directory() . $cover_rel)
+            ? get_template_directory_uri() . $cover_rel
+            : (function_exists('get_site_icon_url') ? (string) get_site_icon_url(512) : '');
+    }
+    $card = $img !== '' ? 'summary_large_image' : 'summary';
+
+    $out  = "\n";
+    $out .= '<meta name="description" content="' . esc_attr($desc) . '">' . "\n";
+    $out .= '<meta property="og:type" content="website">' . "\n";
+    $out .= '<meta property="og:site_name" content="' . esc_attr(get_bloginfo('name')) . '">' . "\n";
+    $out .= '<meta property="og:title" content="' . esc_attr($title) . '">' . "\n";
+    $out .= '<meta property="og:description" content="' . esc_attr($desc) . '">' . "\n";
+    $out .= '<meta property="og:url" content="' . esc_url($url) . '">' . "\n";
+    if ($img !== '') {
+        $out .= '<meta property="og:image" content="' . esc_url($img) . '">' . "\n";
+    }
+    $out .= '<meta name="twitter:card" content="' . esc_attr($card) . '">' . "\n";
+    $out .= '<meta name="twitter:title" content="' . esc_attr($title) . '">' . "\n";
+    $out .= '<meta name="twitter:description" content="' . esc_attr($desc) . '">' . "\n";
+    if ($img !== '') {
+        $out .= '<meta name="twitter:image" content="' . esc_url($img) . '">' . "\n";
+    }
     echo $out;
 }
 

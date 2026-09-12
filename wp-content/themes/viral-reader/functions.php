@@ -15,7 +15,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 if ( ! defined( 'VR_VERSION' ) ) {
-	define( 'VR_VERSION', '1.9.14' );
+	define( 'VR_VERSION', '1.9.15' );
 }
 
 /* ─────────────────────────────────────────────
@@ -194,7 +194,11 @@ function vr_top_categories( $n = 8 ) {
 			} ) );
 		}
 	}
-	return array_slice( $all, 0, max( 0, (int) $n ) );
+	/* Let a site replace the count-based list entirely — e.g. always show a fixed set of
+	   pillars, in editorial order, even before they have posts (the default hide_empty list
+	   is empty pre-launch and uneven while posts ramp up). Return an array of WP_Term. */
+	$cats = apply_filters( 'vr_top_categories', array_slice( $all, 0, max( 0, (int) $n ) ), $n );
+	return is_array( $cats ) ? $cats : array();
 }
 
 /* ─────────────────────────────────────────────
