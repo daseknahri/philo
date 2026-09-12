@@ -4,7 +4,7 @@ Theme URI: https://wa.me/212637122491
 Author: Oussama Hamri
 Author URI: https://wa.me/212637122491
 Description: A warm, editorial, mobile-first blog theme for long-form writing — cream "paper" palette, serif reading column with a sans UI, a cinematic hero, a sticky reading sidebar, quote/pull-quote styling, and ad-native spacing. Fast and light (system fonts, no jQuery, light mode). Pairs with the WP Automator Pro plugin: header/sidebar/footer ad zones and native in-content ad styling. English throughout.
-Version: 1.9.15
+Version: 1.9.16
 Requires at least: 5.5
 Tested up to: 6.6
 Requires PHP: 7.2
@@ -323,6 +323,12 @@ body.nav-open .nav-toggle span::after{top:0;transform:rotate(-45deg)}
 .author-header__name{font-family:var(--serif);font-size:1.7rem;margin:0 0 6px}
 .author-header__bio{font-family:var(--sans);font-size:.92rem;line-height:1.55;color:var(--muted);margin:0}
 .author-header__count{font-family:var(--sans);font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--eyebrow);margin:8px 0 0}
+.author-header__more{margin:6px 0 0;font-family:var(--sans);font-size:.86rem;font-weight:700}
+.author-header__more a{color:var(--eyebrow);transition:color .15s}
+.author-header__more a:hover{color:var(--copper)}
+.archive-header__intro{color:var(--muted);font-size:1.05rem;line-height:1.6;max-width:62ch;margin-top:.5em}
+.archive-header__intro p{margin:0 0 .6em}
+.archive-header__intro p:last-child{margin-bottom:0}
 
 /* ===== Single ===== */
 .content-layout--single-post{display:grid;grid-template-columns:minmax(0,var(--measure)) minmax(260px,320px);gap:56px;align-items:start;padding:26px 0 10px}

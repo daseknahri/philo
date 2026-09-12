@@ -15,7 +15,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 if ( ! defined( 'VR_VERSION' ) ) {
-	define( 'VR_VERSION', '1.9.15' );
+	define( 'VR_VERSION', '1.9.16' );
 }
 
 /* ─────────────────────────────────────────────

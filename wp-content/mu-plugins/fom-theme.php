@@ -96,3 +96,9 @@ add_filter( 'vr_top_categories', static function ( $default, $n ) {
 	}
 	return array_slice( $terms, 0, max( 0, (int) $n ) );
 }, 10, 2 );
+
+/* Connect the (noindexed) author archive to the indexed About-the-Author bio page. */
+add_filter( 'vr_author_profile_url', static function () {
+	$page = get_page_by_path( 'about-the-author' );
+	return $page instanceof WP_Post ? (string) get_permalink( $page ) : '';
+} );
