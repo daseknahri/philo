@@ -25,4 +25,14 @@ chown -R www-data:www-data \
   /seed \
   /content 2>/dev/null || true
 
+# The uploads volume (fom_uploads) mounts ROOT-OWNED when first created, so the web
+# user (www-data) can't write there and wp_upload_dir() returns an error — media
+# sideloading and the Bulk-ZIP publisher fail with "Uploads directory unavailable."
+# Ensure it exists and is www-data-owned. Guarded so the recursive chown runs only
+# once (when root-owned); later restarts skip it, staying fast as the library grows.
+mkdir -p /var/www/html/wp-content/uploads
+if [ "$(stat -c '%U' /var/www/html/wp-content/uploads 2>/dev/null)" != "www-data" ]; then
+  chown -R www-data:www-data /var/www/html/wp-content/uploads 2>/dev/null || true
+fi
+
 exec docker-entrypoint.sh "$@"
