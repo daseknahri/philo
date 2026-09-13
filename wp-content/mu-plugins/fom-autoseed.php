@@ -53,7 +53,7 @@ function fom_autoseed_env_bool(string $key, bool $default = false): bool
  * stops flushing. A soft flush (no .htaccess write) is sufficient because routing to index.php is
  * handled at the Apache vhost level (docker/wordpress/kepoli-performance.conf), not via .htaccess.
  */
-function fom_permalink_self_heal(bool $deep = false): void {
+function fom_permalink_self_heal(bool $throttle = false): void {
     if (defined('WP_INSTALLING') && WP_INSTALLING) {
         return;
     }
@@ -62,42 +62,46 @@ function fom_permalink_self_heal(bool $deep = false): void {
     }
     $canonical = '/%category%/%postname%/';
     $current = (string) get_option('permalink_structure', '');
-    // rewrite_rules is stored as an ARRAY (or false/'' when unset) — use !empty(), never a
-    // (string) cast, which would emit an "Array to string conversion" warning on every request.
+    // rewrite_rules is an ARRAY (or false/'' when unset). A mere !empty() guard is NOT enough:
+    // after a bulk publish the option can hold the page/feed rules yet be MISSING the
+    // %category%/%postname% post rule AND the /category/ archive rule — so every post and every
+    // category archive 404s while the home page and static pages still resolve (Frame of Mind, the
+    // 220-post publish). Detect that partial state by inspecting the rule targets, so the heal
+    // actually re-runs instead of treating a broken-but-non-empty option as healthy.
     $rules = get_option('rewrite_rules', '');
     $healthy = is_array($rules) && ! empty($rules);
-    // DEEP check: a mere !empty() guard is not enough. After a bulk publish the option can hold the
-    // page/feed rules yet be MISSING the %category%/%postname% post rule AND the /category/ archive
-    // rule — so every single post and every category archive 404s while the home page and static
-    // pages still resolve (observed on Frame of Mind after the 220-post publish). That partial state
-    // slipped past the old guard, so the heal never re-ran. Detect it by inspecting the rule targets.
-    // Only done on admin_init (see below): admin fires after all post types/taxonomies register, so
-    // the ensuing flush regenerates the COMPLETE set — the front-end init pass stays shallow (empty/
-    // wrong only) to avoid any chance of thrashing a re-flush on every visitor request.
-    if ($healthy && $deep) {
+    if ($healthy) {
         $targets = implode("\n", array_values($rules));
-        $has_post_rule = (strpos($targets, 'name=$matches') !== false); // /%category%/%postname%/
-        $has_cat_rule  = (strpos($targets, 'category_name=') !== false); // /category/<slug>/
-        $healthy = $has_post_rule && $has_cat_rule;
+        $healthy = (strpos($targets, 'name=$matches') !== false)   // /%category%/%postname%/ post rule
+                && (strpos($targets, 'category_name=') !== false);  // /category/<slug>/ archive rule
     }
     if ($current === $canonical && $healthy) {
-        return; // healthy: canonical structure + (for deep) the post/category rules are present
+        return; // fully healthy
+    }
+    // Front-end path is throttled: if a flush somehow doesn't fully repopulate the rules we must not
+    // re-flush on every visitor request. One attempt per 10 min while broken is plenty; admin_init
+    // (unthrottled, post-registration timing) is the reliable regenerator.
+    if ($throttle && get_transient('fom_pl_heal_tried')) {
+        return;
     }
     global $wp_rewrite;
     if (!($wp_rewrite instanceof WP_Rewrite)) {
         return;
     }
+    if ($throttle) {
+        set_transient('fom_pl_heal_tried', 1, 10 * MINUTE_IN_SECONDS);
+    }
     if ($current !== $canonical) {
         $wp_rewrite->set_permalink_structure($canonical);
     }
-    $wp_rewrite->flush_rules(false); // repopulate rewrite_rules; vhost handles the index.php fallback
-    error_log('[fom] permalink self-heal: flushed (structure was "' . $current . '", rules ' . (is_array($rules) ? count($rules) : 0) . ', deep=' . ($deep ? '1' : '0') . ').');
+    $wp_rewrite->flush_rules(false); // repopulate rewrite_rules; the vhost handles the index.php fallback
+    error_log('[fom] permalink self-heal: flushed (structure was "' . $current . '", rules ' . (is_array($rules) ? count($rules) : 0) . ').');
 }
-// Front-end: cheap heal (structure wrong or rules empty only) at init priority 4.
-add_action('init', static function (): void { fom_permalink_self_heal(false); }, 4);
-// Admin: deep heal at admin_init — same timing as saving Settings → Permalinks, so its flush always
-// regenerates the full rule set and recovers a partial-rules state a plain redeploy can't otherwise fix.
-add_action('admin_init', static function (): void { fom_permalink_self_heal(true); }, 20);
+// Front-end init (throttled) + admin_init (unthrottled, fires after all post types/taxonomies
+// register — same timing as Settings → Permalinks → Save, so its flush regenerates the COMPLETE
+// rule set). Either path now recovers a partial-rules state, so a plain redeploy self-heals.
+add_action('init', static function (): void { fom_permalink_self_heal(true); }, 4);
+add_action('admin_init', static function (): void { fom_permalink_self_heal(false); }, 20);
 
 /**
  * Admin recovery (opt-in). WP_ADMIN_PASSWORD is applied ONLY at first install by the WP-CLI seed
