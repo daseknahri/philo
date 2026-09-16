@@ -35,4 +35,14 @@ if [ "$(stat -c '%U' /var/www/html/wp-content/uploads 2>/dev/null)" != "www-data
   chown -R www-data:www-data /var/www/html/wp-content/uploads 2>/dev/null || true
 fi
 
+# Site hero media (background video + poster), baked in /content/hero, served from the
+# uploads volume at /wp-content/uploads/fom/ so fom-theme.php can point the homepage hero
+# at a clean, text-free clip instead of a post's baked-in-text cover art. Copied on every
+# boot so a redeployed/updated clip propagates; www-data-owned so it serves cleanly.
+if [ -d /content/hero ]; then
+  mkdir -p /var/www/html/wp-content/uploads/fom
+  cp -f /content/hero/* /var/www/html/wp-content/uploads/fom/ 2>/dev/null || true
+  chown -R www-data:www-data /var/www/html/wp-content/uploads/fom 2>/dev/null || true
+fi
+
 exec docker-entrypoint.sh "$@"

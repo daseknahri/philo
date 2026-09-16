@@ -36,9 +36,16 @@ function fom_theme_asset_uri( $file ) {
 	return get_template_directory_uri() . '/assets/img/' . ltrim( (string) $file, '/' );
 }
 
-/* Standing homepage hero image. */
+/* Homepage hero background: a muted, looping cinematic clip (text-free stock footage) with
+   a still poster as the image fallback (reduced-motion + while-loading + no-JS). Both are
+   baked in content/hero and copied to /wp-content/uploads/fom/ by the wordpress entrypoint,
+   so they survive redeploys. The hero background is deliberately DECOUPLED from any post's
+   featured image, whose branded cover art has baked-in text that collided with the headline. */
+add_filter( 'vr_hero_video_url', static function () {
+	return trailingslashit( wp_get_upload_dir()['baseurl'] ) . 'fom/fom-hero.mp4';
+} );
 add_filter( 'vr_hero_image_url', static function () {
-	return fom_theme_asset_uri( 'fom-hero.jpg' );
+	return trailingslashit( wp_get_upload_dir()['baseurl'] ) . 'fom/fom-hero-poster.jpg';
 } );
 
 /* Per-category cover banner (category archive header + homepage topic tiles). */

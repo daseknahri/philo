@@ -15,7 +15,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 if ( ! defined( 'VR_VERSION' ) ) {
-	define( 'VR_VERSION', '1.9.16' );
+	define( 'VR_VERSION', '1.9.17' );
 }
 
 /* ─────────────────────────────────────────────
@@ -102,6 +102,42 @@ function vr_fallback_image_url( $post_id = 0 ) {
 function vr_hero_image_url() {
 	$url = apply_filters( 'vr_hero_image_url', '' );
 	return ( is_string( $url ) && preg_match( '#^https?://#i', $url ) ) ? $url : '';
+}
+
+/* Optional standing hero VIDEO (filterable, default NONE): a site can supply a muted,
+   looping background clip for the homepage hero. When set it renders instead of the hero
+   image (which becomes the <video> poster + no-JS/older-browser fallback). Text-free stock
+   footage keeps the overlaid headline legible — never a picture with baked-in text. */
+function vr_hero_video_url() {
+	$url = apply_filters( 'vr_hero_video_url', '' );
+	return ( is_string( $url ) && preg_match( '#^https?://#i', $url ) ) ? $url : '';
+}
+
+/* Render the homepage hero background: the standing video (muted/looping, with the hero
+   image as poster) when one is configured, else the standing hero image. Keeps the hero
+   background DECOUPLED from any post's featured image — so a post's text-baked cover art
+   never becomes the banner behind the overlaid title. */
+function vr_hero_media() {
+	$video = vr_hero_video_url();
+	$img   = vr_hero_image_url();
+	if ( '' !== $video ) {
+		/* Poster image sits underneath as the static fallback — shown to reduced-motion
+		   users (CSS hides the video for them) and while the clip loads. */
+		if ( '' !== $img ) {
+			printf( '<img class="home-hero__img home-hero__poster" src="%s" alt="" loading="eager" fetchpriority="high" decoding="async" />', esc_url( $img ) );
+		}
+		printf(
+			'<video class="home-hero__img home-hero__video" autoplay muted loop playsinline preload="metadata"%s><source src="%s" type="video/mp4" /></video>',
+			$img ? ' poster="' . esc_url( $img ) . '"' : '',
+			esc_url( $video )
+		);
+		return true;
+	}
+	if ( '' !== $img ) {
+		printf( '<img class="home-hero__img" src="%s" alt="" loading="eager" fetchpriority="high" decoding="async" />', esc_url( $img ) );
+		return true;
+	}
+	return false;
 }
 
 /* Per-category cover art (filterable, default NONE): a site maps a term to a cover

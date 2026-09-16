@@ -21,19 +21,22 @@ $vr_hero   = ( ! $vr_paged && ! empty( $vr_posts ) ) ? $vr_posts[0] : null;
 	<div class="vr-container">
 		<section class="home-hero">
 			<?php
-			$vr_hero_id = get_post_thumbnail_id( $vr_hero );
-			if ( $vr_hero_id ) {
-				echo wp_get_attachment_image( $vr_hero_id, 'large', false, array( 'class' => 'home-hero__img', 'alt' => '', 'loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async', 'sizes' => '100vw' ) );
-			} else {
-				/* External featured image fallback: posts published without a downloaded
-				   image store the remote URL in _wpap_image_url (WP Automator Pro). Show it
-				   straight from the URL so the hero still has its picture. */
-				$vr_hero_ext = vr_external_image_url( $vr_hero->ID );
-				if ( '' !== $vr_hero_ext ) {
-					printf( '<img class="home-hero__img" src="%s" alt="" loading="eager" fetchpriority="high" decoding="async" />', esc_url( $vr_hero_ext ) );
+			/* Standing hero background (video or image), DECOUPLED from the featured post's own
+				   picture — its branded cover art has baked-in text that would collide with the
+				   overlaid headline. Fall back to the post's own thumbnail only when the site
+				   configured no standing hero media. */
+				if ( ! vr_hero_media() ) {
+					$vr_hero_id = get_post_thumbnail_id( $vr_hero );
+					if ( $vr_hero_id ) {
+						echo wp_get_attachment_image( $vr_hero_id, 'large', false, array( 'class' => 'home-hero__img', 'alt' => '', 'loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async', 'sizes' => '100vw' ) );
+					} else {
+						$vr_hero_ext = vr_external_image_url( $vr_hero->ID );
+						if ( '' !== $vr_hero_ext ) {
+							printf( '<img class="home-hero__img" src="%s" alt="" loading="eager" fetchpriority="high" decoding="async" />', esc_url( $vr_hero_ext ) );
+						}
+					}
 				}
-			}
-			$vr_hcats = get_the_category( $vr_hero->ID );
+				$vr_hcats = get_the_category( $vr_hero->ID );
 			?>
 			<div class="home-hero__inner">
 				<?php if ( ! empty( $vr_hcats ) ) : ?>
@@ -59,9 +62,7 @@ $vr_hero   = ( ! $vr_paged && ! empty( $vr_posts ) ) ? $vr_posts[0] : null;
 	?>
 	<div class="vr-container">
 		<section class="home-hero home-hero--brand">
-			<?php if ( '' !== $vr_hero_img ) : ?>
-				<img class="home-hero__img" src="<?php echo esc_url( $vr_hero_img ); ?>" alt="" loading="eager" fetchpriority="high" decoding="async" />
-			<?php endif; ?>
+			<?php vr_hero_media(); ?>
 			<div class="home-hero__inner">
 				<p class="eyebrow"><?php esc_html_e( 'Welcome', 'viral-reader' ); ?></p>
 				<h1><?php echo esc_html( get_bloginfo( 'name' ) ); ?></h1>
