@@ -1,0 +1,214 @@
+/* ============================================================================
+   Viral Reader — Presentation Hardening layer (opt-in, brand-neutral)
+   ----------------------------------------------------------------------------
+   Net-new UX patterns the base theme does not already ship. Everything here is
+   token-only (no hardcoded brand colors) so it inherits the active palette and
+   BOTH skins (paper / cinematic) for free. Loaded behind the
+   `vr_enable_presentation_hardening` filter (default on). See functions.php.
+
+   Deliberately does NOT restyle comments, pagination, search, alignment,
+   figcaption, <pre>, footer, gallery, nav-hover, back-to-top, reading progress,
+   reading-time or card thumbnails — the base theme already owns all of those.
+   ========================================================================== */
+
+:root {
+  /* Shared motion tokens — the base theme hardcodes durations inline; these
+     give the opt-in layer one place to tune feel, and one place to kill it. */
+  --vr-dur: .18s;
+  --vr-ease: cubic-bezier(.4, 0, .2, 1);
+}
+
+/* ── Editorial callout boxes ────────────────────────────────────────────────
+   Editor-usable: add class "vr-callout vr-tip" (or vr-note / vr-warn) to a
+   paragraph or group block. Tints are color-mixed from palette tokens, so they
+   re-tint per site and per skin automatically. */
+.vr-callout {
+  max-width: var(--measure);
+  margin: 22px auto;
+  padding: 16px 18px 16px 54px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-family: var(--serif);
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--ink);
+  position: relative;
+}
+.vr-callout::before {
+  position: absolute;
+  left: 16px;
+  top: 15px;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: .78rem;
+  color: var(--on-dark, #fff);
+}
+.vr-callout > :first-child { margin-top: 0; }
+.vr-callout > :last-child { margin-bottom: 0; }
+
+.vr-tip {
+  background: color-mix(in srgb, var(--sage) 55%, var(--surface));
+  border-color: color-mix(in srgb, var(--olive) 22%, var(--line));
+}
+.vr-tip::before { content: "\2713"; background: var(--olive); } /* check */
+
+.vr-note {
+  border-color: color-mix(in srgb, var(--clay) 30%, var(--line));
+}
+.vr-note::before { content: "i"; background: var(--clay); font-style: italic; }
+
+.vr-warn {
+  background: color-mix(in srgb, var(--copper) 9%, var(--surface));
+  border-color: color-mix(in srgb, var(--copper) 32%, var(--line));
+}
+.vr-warn::before { content: "!"; background: var(--copper); }
+
+@media (max-width: 480px) {
+  .vr-callout { padding-left: 48px; }
+  .vr-callout::before { left: 12px; }
+}
+
+/* ── Tutorial step lists ────────────────────────────────────────────────────
+   Light default: accent marker on any content <ol>. Full step-card treatment
+   is opt-in via a wrapping "vr-steps" class, so casual ordered lists are not
+   forced into heavy cards. */
+.entry-content ol > li::marker {
+  color: var(--clay);
+  font-weight: 700;
+}
+
+.vr-steps ol,
+.entry-content .vr-steps ol {
+  counter-reset: vr-step;
+  list-style: none;
+  padding-left: 0;
+  margin: 20px 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.vr-steps ol > li {
+  counter-increment: vr-step;
+  position: relative;
+  padding: 12px 16px 12px 60px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-family: var(--serif);
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--ink);
+}
+.vr-steps ol > li::before {
+  content: counter(vr-step);
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--clay);
+  color: var(--on-dark, #fff);
+  border-radius: 50%;
+  font-family: var(--sans);
+  font-size: .95rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums lining-nums;
+  box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px color-mix(in srgb, var(--clay) 30%, transparent);
+}
+.vr-steps ol > li::marker { content: none; }
+.vr-steps ol > li > :first-child { margin-top: 0; }
+.vr-steps ol > li > :last-child { margin-bottom: 0; }
+@media (max-width: 480px) {
+  .vr-steps ol > li { padding-left: 54px; }
+  .vr-steps ol > li::before { left: 10px; width: 30px; height: 30px; font-size: .85rem; }
+}
+
+/* ── Per-heading anchor-copy control ────────────────────────────────────────
+   hardening.js injects a .vr-anchor button into content headings so readers can
+   deep-link a section. The base theme only copies the whole-post URL. */
+.entry-content h2,
+.entry-content h3 { position: relative; }
+.vr-anchor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-inline-start: 8px;
+  padding: 0;
+  vertical-align: middle;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(-1px);
+  transition: opacity var(--vr-dur) var(--vr-ease),
+              color var(--vr-dur) var(--vr-ease),
+              border-color var(--vr-dur) var(--vr-ease),
+              background-color var(--vr-dur) var(--vr-ease);
+}
+.entry-content h2:hover .vr-anchor,
+.entry-content h3:hover .vr-anchor,
+.vr-anchor:focus-visible,
+.vr-anchor.is-copied { opacity: 1; }
+.vr-anchor:hover,
+.vr-anchor:focus-visible,
+.vr-anchor.is-copied {
+  color: var(--clay);
+  border-color: color-mix(in srgb, var(--clay) 30%, var(--line));
+  background: var(--surface);
+}
+.vr-anchor svg { width: 14px; height: 14px; display: block; }
+
+/* Shared toast (also usable by the theme's own copy button if it opts in) */
+.vr-toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(28px, env(safe-area-inset-bottom));
+  transform: translateX(-50%) translateY(6px);
+  z-index: 60;
+  padding: 10px 16px;
+  background: var(--ink);
+  color: var(--on-dark, #fff);
+  font-family: var(--sans);
+  font-size: .82rem;
+  font-weight: 700;
+  border-radius: 999px;
+  box-shadow: var(--shadow-lift);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--vr-dur) var(--vr-ease),
+              transform var(--vr-dur) var(--vr-ease);
+}
+.vr-toast.is-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── Typographic + a11y refinements (net-new, universally safe) ───────────── */
+.entry-content p { text-wrap: pretty; }
+.entry-content h1,
+.entry-content h2,
+.entry-content h3 { text-wrap: balance; }
+
+/* Branded keyboard-only focus ring for content interactives, without touching
+   the theme's own component focus styles. */
+.vr-callout a:focus-visible,
+.vr-anchor:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--clay) 60%, transparent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vr-anchor,
+  .vr-toast { transition-duration: .01ms; }
+}

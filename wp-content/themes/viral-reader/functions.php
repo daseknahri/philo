@@ -15,7 +15,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 if ( ! defined( 'VR_VERSION' ) ) {
-	define( 'VR_VERSION', '1.9.17' );
+	define( 'VR_VERSION', '1.9.18' );
 }
 
 /* ─────────────────────────────────────────────
@@ -268,11 +268,20 @@ function vr_scripts() {
 	if ( is_singular() && comments_open() && get_option( 'thread_comments' ) ) {
 		wp_enqueue_script( 'comment-reply' );
 	}
+
+	/* Opt-in presentation-hardening layer: net-new UX patterns (editorial
+	   callouts, tutorial step lists, per-heading anchor-copy) that the base
+	   theme does not already ship. Token-only CSS, so it inherits the active
+	   palette and both skins. Filter off per-site if unwanted. */
+	if ( apply_filters( 'vr_enable_presentation_hardening', true ) ) {
+		wp_enqueue_style( 'viral-reader-hardening', get_template_directory_uri() . '/assets/css/hardening.css', array( 'viral-reader' ), VR_VERSION );
+		wp_enqueue_script( 'viral-reader-hardening', get_template_directory_uri() . '/assets/js/hardening.js', array( 'viral-reader' ), VR_VERSION, true );
+	}
 }
 add_action( 'wp_enqueue_scripts', 'vr_scripts' );
 
 function vr_defer_js( $tag, $handle ) {
-	if ( 'viral-reader' === $handle && false === strpos( $tag, ' defer' ) ) {
+	if ( in_array( $handle, array( 'viral-reader', 'viral-reader-hardening' ), true ) && false === strpos( $tag, ' defer' ) ) {
 		$tag = str_replace( ' src=', ' defer src=', $tag );
 	}
 	return $tag;
