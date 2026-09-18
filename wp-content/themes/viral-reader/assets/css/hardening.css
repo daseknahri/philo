@@ -257,3 +257,43 @@
 .vr-pin-save svg { width: 16px; height: 16px; display: block; }
 @media (hover: none) { .vr-pin-save { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .vr-pin-save { transition: opacity var(--vr-dur) var(--vr-ease); transform: none; } }
+
+/* ── Site-wide brand social row (footer brand column) ────────────────────────
+   Rendered by vr_brand_social_html() from the vr_social_profiles filter. Token
+   only, so it inherits the footer palette and both skins. */
+.vr-brand-social {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.vr-brand-social__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: var(--footer-ink, rgba(255, 253, 248, .82));
+  border: 1px solid color-mix(in srgb, currentColor 26%, transparent);
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  transition: color var(--vr-dur) var(--vr-ease),
+              border-color var(--vr-dur) var(--vr-ease),
+              background-color var(--vr-dur) var(--vr-ease),
+              transform var(--vr-dur) var(--vr-ease);
+}
+.vr-brand-social__link:hover,
+.vr-brand-social__link:focus-visible {
+  color: var(--footer-hover, #f0b48c);
+  border-color: color-mix(in srgb, currentColor 55%, transparent);
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  transform: translateY(-2px);
+}
+.vr-brand-social__link:focus-visible {
+  outline: 2px solid color-mix(in srgb, currentColor 60%, transparent);
+  outline-offset: 2px;
+}
+.vr-brand-social__link svg { display: block; }
+@media (prefers-reduced-motion: reduce) { .vr-brand-social__link:hover { transform: none; } }

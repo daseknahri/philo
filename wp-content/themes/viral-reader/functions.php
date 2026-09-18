@@ -15,7 +15,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 if ( ! defined( 'VR_VERSION' ) ) {
-	define( 'VR_VERSION', '1.9.19' );
+	define( 'VR_VERSION', '1.9.20' );
 }
 
 /* ─────────────────────────────────────────────
@@ -281,6 +281,10 @@ function vr_scripts() {
 			// (e.g. a non-visual niche) or retunes the pin description suffix.
 			'pinterest'     => (bool) apply_filters( 'vr_enable_pinterest_save', true ),
 			'pinDescSuffix' => (string) apply_filters( 'vr_pin_desc_suffix', get_bloginfo( 'name' ) ),
+			// Localizable Pinterest-button strings (reusable layer runs on
+			// non-English sites too); JS falls back to English if absent.
+			'pinSave'       => __( 'Save', 'viral-reader' ),
+			'pinAria'       => __( 'Save this image to Pinterest', 'viral-reader' ),
 		) );
 	}
 }
@@ -893,6 +897,60 @@ function vr_author_social_html( $user_id ) {
 		$items .= '<li><a class="vr-author-social__link" href="' . esc_url( $l['url'] ) . '" rel="me noopener nofollow" target="_blank">' . esc_html( $l['name'] ) . '</a></li>';
 	}
 	return '<ul class="vr-author-social" aria-label="' . esc_attr__( 'Author profiles', 'viral-reader' ) . '">' . $items . '</ul>';
+}
+
+/* ─────────────────────────────────────────────
+   Site-wide BRAND social profiles (distinct from per-author links above).
+   A site returns its brand profiles from the `vr_social_profiles` filter as
+   an array of array( 'network' => 'facebook', 'url' => 'https://…' ). Rendered
+   as a branded icon row in the footer brand column. Visual/brand-presence only:
+   Person `sameAs` (author) and any Organization `sameAs` (companion plugin's
+   @graph) remain the single source for schema, so this adds no duplicate JSON-LD. */
+function vr_social_profiles() {
+	$p = apply_filters( 'vr_social_profiles', array() );
+	if ( ! is_array( $p ) ) { return array(); }
+	$out = array();
+	foreach ( $p as $row ) {
+		if ( ! is_array( $row ) ) { continue; }
+		$net = isset( $row['network'] ) ? sanitize_key( $row['network'] ) : '';
+		$url = isset( $row['url'] ) ? trim( (string) $row['url'] ) : '';
+		if ( '' === $net || '' === $url || ! preg_match( '#^https?://#i', $url ) ) { continue; }
+		$out[] = array( 'network' => $net, 'url' => $url );
+	}
+	return $out;
+}
+
+/* Inline brand-icon SVGs (currentColor, decorative). Unknown networks fall back
+   to a generic link glyph so a site can list any profile without a code change. */
+function vr_social_icon_svg( $network ) {
+	$icons = array(
+		'facebook'  => '<path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 22 12z"/>',
+		'pinterest' => '<path d="M12.04 2C6.58 2 3 5.66 3 9.98c0 2.02 1.16 4.54 3.02 5.34.28.12.43.07.5-.2.05-.2.31-1.24.43-1.72a.46.46 0 0 0-.1-.44c-.63-.76-1.14-2.15-1.14-3.45 0-3.34 2.53-6.57 6.84-6.57 3.72 0 6.33 2.54 6.33 6.17 0 4.1-2.07 6.94-4.76 6.94-1.49 0-2.6-1.23-2.24-2.74.43-1.8 1.25-3.74 1.25-5.04 0-1.16-.62-2.13-1.91-2.13-1.52 0-2.74 1.57-2.74 3.67 0 1.34.45 2.25.45 2.25l-1.83 7.74c-.54 2.3-.08 5.11-.04 5.4.02.16.24.2.33.08.13-.17 1.8-2.23 2.37-4.28.16-.58.92-3.6.92-3.6.46.87 1.79 1.63 3.2 1.63 4.22 0 7.08-3.84 7.08-8.99C21.96 5.51 18.32 2 12.04 2z"/>',
+		'instagram' => '<path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.17 15.58 2.16 15.2 2.16 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zm0 3.68a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.4-10.4a1.44 1.44 0 1 1-2.88 0 1.44 1.44 0 0 1 2.88 0z"/>',
+		'x'         => '<path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.22-6.82-5.96 6.82H1.66l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23zm-1.16 17.52h1.83L7.01 4.13H5.05l12.03 15.64z"/>',
+		'youtube'   => '<path d="M23.5 6.2a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.51A3.02 3.02 0 0 0 .5 6.2C0 8.08 0 12 0 12s0 3.92.5 5.8a3.02 3.02 0 0 0 2.12 2.14c1.88.51 9.38.51 9.38.51s7.5 0 9.38-.51a3.02 3.02 0 0 0 2.12-2.14C24 15.92 24 12 24 12s0-3.92-.5-5.8zM9.6 15.6V8.4l6.2 3.6-6.2 3.6z"/>',
+		'tiktok'    => '<path d="M16.6 5.82a4.28 4.28 0 0 1-1.06-2.82h-3.2v12.7a2.6 2.6 0 1 1-2.6-2.6c.27 0 .53.04.78.12v-3.3a5.9 5.9 0 0 0-.78-.06 5.9 5.9 0 1 0 5.9 5.9V8.9a7.4 7.4 0 0 0 4.36 1.4V7.1a4.28 4.28 0 0 1-3.4-1.28z"/>',
+		'linkedin'  => '<path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.55V9h3.57v11.45zM22.22 0H1.77C.8 0 0 .78 0 1.75v20.5C0 23.22.8 24 1.77 24h20.45c.98 0 1.78-.78 1.78-1.75V1.75C24 .78 23.2 0 22.22 0z"/>',
+	);
+	$path = isset( $icons[ $network ] ) ? $icons[ $network ]
+		: '<path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>';
+	return '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true" focusable="false">' . $path . '</svg>';
+}
+
+function vr_brand_social_html() {
+	$profiles = vr_social_profiles();
+	if ( empty( $profiles ) ) { return ''; }
+	$labels = array_flip( array_map( 'strtolower', vr_author_social_labels() ) );
+	$items  = '';
+	foreach ( $profiles as $p ) {
+		$name  = ucfirst( $p['network'] );
+		/* translators: %s: social network name (e.g. "Facebook") */
+		$aria  = sprintf( __( 'Follow us on %s', 'viral-reader' ), $name );
+		$items .= '<li><a class="vr-brand-social__link" href="' . esc_url( $p['url'] ) . '"'
+			. ' rel="me noopener" target="_blank" aria-label="' . esc_attr( $aria ) . '"'
+			. ' title="' . esc_attr( $name ) . '">' . vr_social_icon_svg( $p['network'] ) . '</a></li>';
+	}
+	return '<ul class="vr-brand-social" aria-label="' . esc_attr__( 'Social profiles', 'viral-reader' ) . '">' . $items . '</ul>';
 }
 
 function vr_author_person_node( $user_id ) {

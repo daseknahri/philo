@@ -26,6 +26,11 @@ if ( function_exists( 'wpap_zone_html' ) ) {
 			<a class="n" href="<?php echo esc_url( home_url( '/' ) ); ?>" rel="home"><?php echo esc_html( get_bloginfo( 'name' ) ); ?></a>
 			<?php $vr_desc = get_bloginfo( 'description', 'display' ); ?>
 			<?php if ( $vr_desc ) : ?><p><?php echo esc_html( $vr_desc ); ?></p><?php endif; ?>
+			<?php
+			if ( function_exists( 'vr_brand_social_html' ) ) {
+				echo vr_brand_social_html(); // phpcs:ignore WordPress.Security.EscapeOutput -- built with esc_url/esc_attr + static inline SVG
+			}
+			?>
 		</div>
 
 		<div class="site-footer__explore">
