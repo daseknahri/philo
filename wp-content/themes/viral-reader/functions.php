@@ -15,7 +15,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 if ( ! defined( 'VR_VERSION' ) ) {
-	define( 'VR_VERSION', '1.9.18' );
+	define( 'VR_VERSION', '1.9.19' );
 }
 
 /* ─────────────────────────────────────────────
@@ -276,6 +276,12 @@ function vr_scripts() {
 	if ( apply_filters( 'vr_enable_presentation_hardening', true ) ) {
 		wp_enqueue_style( 'viral-reader-hardening', get_template_directory_uri() . '/assets/css/hardening.css', array( 'viral-reader' ), VR_VERSION );
 		wp_enqueue_script( 'viral-reader-hardening', get_template_directory_uri() . '/assets/js/hardening.js', array( 'viral-reader' ), VR_VERSION, true );
+		wp_localize_script( 'viral-reader-hardening', 'vrHardening', array(
+			// Pinterest "Save" on images — on by default; a site filters it off
+			// (e.g. a non-visual niche) or retunes the pin description suffix.
+			'pinterest'     => (bool) apply_filters( 'vr_enable_pinterest_save', true ),
+			'pinDescSuffix' => (string) apply_filters( 'vr_pin_desc_suffix', get_bloginfo( 'name' ) ),
+		) );
 	}
 }
 add_action( 'wp_enqueue_scripts', 'vr_scripts' );

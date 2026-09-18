@@ -16,6 +16,10 @@
      give the opt-in layer one place to tune feel, and one place to kill it. */
   --vr-dur: .18s;
   --vr-ease: cubic-bezier(.4, 0, .2, 1);
+  /* Pinterest brand red (a platform constant, not the site palette). A site
+     can still re-theme it if it wants a different save-button color. */
+  --vr-pin: #e60023;
+  --vr-pin-hover: #ad081b;
 }
 
 /* ── Editorial callout boxes ────────────────────────────────────────────────
@@ -212,3 +216,44 @@
   .vr-anchor,
   .vr-toast { transition-duration: .01ms; }
 }
+
+/* ── Pinterest "Save" on images (opt-in via vr_enable_pinterest_save) ────────
+   Crochet/recipe/craft sites live on Pinterest. hardening.js adds a hover Save
+   button to the featured image + each content image; it opens Pinterest's
+   composer pre-filled with the post URL, that image, and a keyword description.
+   JS-injected only on single posts, so no markup cost elsewhere. */
+.vr-pin-wrap, .vr-pin-host { position: relative; }
+.vr-pin-wrap { display: inline-block; max-width: 100%; }
+.entry-content .vr-pin-wrap > img { display: block; }
+.vr-pin-save {
+  position: absolute;
+  top: 12px; left: 12px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 14px;
+  background: var(--vr-pin);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: .8rem;
+  letter-spacing: .02em;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(-4px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .25);
+  transition: opacity var(--vr-dur) var(--vr-ease),
+              transform var(--vr-dur) var(--vr-ease),
+              background-color var(--vr-dur) var(--vr-ease);
+}
+.vr-pin-wrap:hover .vr-pin-save,
+.vr-pin-host:hover .vr-pin-save,
+.vr-pin-save:focus-visible { opacity: 1; transform: translateY(0); }
+.vr-pin-save:hover { background: var(--vr-pin-hover); }
+.vr-pin-save svg { width: 16px; height: 16px; display: block; }
+@media (hover: none) { .vr-pin-save { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .vr-pin-save { transition: opacity var(--vr-dur) var(--vr-ease); transform: none; } }
