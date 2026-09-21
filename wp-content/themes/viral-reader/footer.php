@@ -52,7 +52,12 @@ if ( function_exists( 'wpap_zone_html' ) ) {
 			if ( has_nav_menu( 'footer' ) ) {
 				wp_nav_menu( array( 'theme_location' => 'footer', 'container' => false, 'depth' => 1, 'items_wrap' => '<ul>%3$s</ul>' ) );
 			} else {
-				echo '<ul><li><a href="' . esc_url( home_url( '/' ) ) . '">' . esc_html__( 'Home', 'viral-reader' ) . '</a></li></ul>';
+				echo '<ul>';
+				foreach ( vr_footer_info_links() as $vr_il ) {
+					if ( empty( $vr_il['url'] ) || '' === (string) $vr_il['label'] ) { continue; }
+					echo '<li><a href="' . esc_url( $vr_il['url'] ) . '">' . esc_html( $vr_il['label'] ) . '</a></li>';
+				}
+				echo '</ul>';
 			}
 			?>
 		</div>

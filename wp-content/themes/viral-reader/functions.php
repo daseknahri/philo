@@ -15,7 +15,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 if ( ! defined( 'VR_VERSION' ) ) {
-	define( 'VR_VERSION', '1.9.20' );
+	define( 'VR_VERSION', '1.9.21' );
 }
 
 /* ─────────────────────────────────────────────
@@ -235,6 +235,36 @@ function vr_top_categories( $n = 8 ) {
 	   is empty pre-launch and uneven while posts ramp up). Return an array of WP_Term. */
 	$cats = apply_filters( 'vr_top_categories', array_slice( $all, 0, max( 0, (int) $n ) ), $n );
 	return is_array( $cats ) ? $cats : array();
+}
+
+/* Footer "Information" column links. When a site assigns a real menu to the `footer`
+   location the theme uses that; this is the FALLBACK, so an unconfigured site still links
+   its About / Contact / Privacy / Terms pages instead of a lonely "Home". Every published
+   top-level page is listed (except the front page and the posts page), which for a
+   blog-creator install is exactly the legal/about/contact set — language-agnostic, no
+   per-site slug list, no manual menu step. A site can still override via the `footer` menu
+   or the `vr_footer_info_links` filter. Returns a list of array{url,label}. */
+function vr_footer_info_links() {
+	static $links = null;
+	if ( null !== $links ) {
+		return $links;
+	}
+	$front = (int) get_option( 'page_on_front' );
+	$posts = (int) get_option( 'page_for_posts' );
+	$links = array(
+		array( 'url' => home_url( '/' ), 'label' => __( 'Home', 'viral-reader' ) ),
+	);
+	$pages = get_pages( array( 'sort_column' => 'post_title', 'sort_order' => 'ASC', 'number' => 30 ) );
+	foreach ( (array) $pages as $vr_pg ) {
+		$pid = (int) $vr_pg->ID;
+		if ( $pid === $front || ( $posts && $pid === $posts ) ) {
+			continue;
+		}
+		$links[] = array( 'url' => (string) get_permalink( $vr_pg ), 'label' => get_the_title( $vr_pg ) );
+	}
+	$out   = apply_filters( 'vr_footer_info_links', $links );
+	$links = is_array( $out ) ? $out : $links;
+	return $links;
 }
 
 /* ─────────────────────────────────────────────
