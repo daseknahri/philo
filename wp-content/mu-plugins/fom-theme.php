@@ -48,6 +48,20 @@ add_filter( 'vr_hero_image_url', static function () {
 	return trailingslashit( wp_get_upload_dir()['baseurl'] ) . 'fom/fom-hero-poster.jpg';
 } );
 
+/* Brand icons in <head> (favicon + apple-touch + web manifest). The theme emits the
+   <link> tags from these filters; here we point them at Frame of Mind's shipped icon art
+   and the /site.webmanifest route served by fom-adtech.php. Without this the site had no
+   favicon at all — the brand mark was missing from every browser tab and bookmark. */
+add_filter( 'vr_site_icon_svg_url', static function () {
+	return fom_theme_asset_uri( 'frame-of-mind-icon.svg' );
+} );
+add_filter( 'vr_site_icon_url', static function () {
+	return fom_theme_asset_uri( 'frame-of-mind-icon.png' );
+} );
+add_filter( 'vr_web_manifest_url', static function () {
+	return home_url( '/site.webmanifest' );
+} );
+
 /* Per-category cover banner (category archive header + homepage topic tiles). */
 add_filter( 'vr_category_cover_url', static function ( $url, $term_id ) {
 	$term = $term_id ? get_term( (int) $term_id ) : null;

@@ -15,7 +15,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 if ( ! defined( 'VR_VERSION' ) ) {
-	define( 'VR_VERSION', '1.9.21' );
+	define( 'VR_VERSION', '1.9.22' );
 }
 
 /* ─────────────────────────────────────────────
@@ -266,6 +266,38 @@ function vr_footer_info_links() {
 	$links = is_array( $out ) ? $out : $links;
 	return $links;
 }
+
+/* Brand icons in <head>: favicon (svg + png), apple-touch-icon, and the web app
+   manifest. WordPress emits nothing here unless a Site Icon is set in the Customizer,
+   which a seeded/deployed install never has — so the brand mark is missing from every
+   browser tab, bookmark, and phone home screen. This fills that gap from filterable
+   URLs so a site points them at its own brand assets (or a served manifest route). If
+   a real WP Site Icon IS set, WP's own tags win and we only add the manifest link. */
+function vr_head_icons() {
+	if ( is_admin() ) {
+		return;
+	}
+	$out = '';
+	if ( ! ( function_exists( 'has_site_icon' ) && has_site_icon() ) ) {
+		$svg = (string) apply_filters( 'vr_site_icon_svg_url', '' );
+		$png = (string) apply_filters( 'vr_site_icon_url', '' );
+		if ( '' !== $svg ) {
+			$out .= '<link rel="icon" type="image/svg+xml" href="' . esc_url( $svg ) . '">' . "\n";
+		}
+		if ( '' !== $png ) {
+			$out .= '<link rel="icon" type="image/png" sizes="512x512" href="' . esc_url( $png ) . '">' . "\n";
+			$out .= '<link rel="apple-touch-icon" href="' . esc_url( $png ) . '">' . "\n";
+		}
+	}
+	$manifest = (string) apply_filters( 'vr_web_manifest_url', '' );
+	if ( '' !== $manifest ) {
+		$out .= '<link rel="manifest" href="' . esc_url( $manifest ) . '">' . "\n";
+	}
+	if ( '' !== $out ) {
+		echo "\n" . $out; // phpcs:ignore WordPress.Security.EscapeOutput -- each URL escaped with esc_url above
+	}
+}
+add_action( 'wp_head', 'vr_head_icons', 2 );
 
 /* ─────────────────────────────────────────────
    Assets (fast: system fonts, tiny deferred JS, no block CSS)
