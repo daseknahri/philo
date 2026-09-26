@@ -15,7 +15,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 if ( ! defined( 'VR_VERSION' ) ) {
-	define( 'VR_VERSION', '1.9.22' );
+	define( 'VR_VERSION', '1.9.23' );
 }
 
 /* ─────────────────────────────────────────────
@@ -1002,10 +1002,15 @@ function vr_social_icon_svg( $network ) {
 function vr_brand_social_html() {
 	$profiles = vr_social_profiles();
 	if ( empty( $profiles ) ) { return ''; }
-	$labels = array_flip( array_map( 'strtolower', vr_author_social_labels() ) );
-	$items  = '';
+	/* Proper display names ("YouTube", "TikTok", "LinkedIn") keyed by network slug —
+	   a bare ucfirst() would print "Youtube" / "Tiktok" in the labels. */
+	$proper = array();
+	foreach ( vr_author_social_labels() as $lbl ) {
+		$proper[ strtolower( $lbl ) ] = $lbl;
+	}
+	$items = '';
 	foreach ( $profiles as $p ) {
-		$name  = ucfirst( $p['network'] );
+		$name  = isset( $proper[ $p['network'] ] ) ? $proper[ $p['network'] ] : ucfirst( $p['network'] );
 		/* translators: %s: social network name (e.g. "Facebook") */
 		$aria  = sprintf( __( 'Follow us on %s', 'viral-reader' ), $name );
 		$items .= '<li><a class="vr-brand-social__link" href="' . esc_url( $p['url'] ) . '"'
