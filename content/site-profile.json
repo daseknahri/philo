@@ -3,7 +3,13 @@
     "name": "Frame of Mind",
     "tagline": "Films, philosophy, psychology, and the big ideas that shape how we see the world.",
     "description": "Frame of Mind explores films, books, philosophy, and psychology — turning deep ideas into clear, honest, human writing for curious readers.",
-    "site_email": "contact@ibnbatoutaweb.com"
+    "site_email": "contact@ibnbatoutaweb.com",
+    "social": {
+      "facebook": "",
+      "instagram": "https://www.instagram.com/readframeofmind/",
+      "x": "",
+      "youtube": "https://www.youtube.com/channel/UCfwlvbftNgMZoC4IdJTfE9w"
+    }
   },
   "locales": {
     "public": "en_US",

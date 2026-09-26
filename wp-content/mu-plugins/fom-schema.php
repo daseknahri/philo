@@ -67,6 +67,13 @@ function fom_schema_jsonld(): void
         ],
     ];
 
+    // The brand's own social profiles as Organization sameAs — the schema signal that ties the
+    // site to its off-site presence (the footer icon row shows the same list to readers).
+    $same = function_exists('fom_brand_social') ? array_values(fom_brand_social()) : [];
+    if ($same) {
+        $graph[0]['sameAs'] = $same;
+    }
+
     $data = ['@context' => 'https://schema.org', '@graph' => $graph];
 
     // JSON_HEX_TAG|JSON_HEX_AMP neutralize a literal </script> (or &) in any value,

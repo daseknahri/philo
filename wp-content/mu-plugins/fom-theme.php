@@ -62,6 +62,19 @@ add_filter( 'vr_web_manifest_url', static function () {
 	return home_url( '/site.webmanifest' );
 } );
 
+/* Brand social icon row in the footer brand column. Same source as the Organization
+   sameAs (fom_brand_social() in fom-shared.php, read from brand.social in site-profile.json),
+   so the visible links and the schema can never disagree. */
+add_filter( 'vr_social_profiles', static function () {
+	$rows = array();
+	if ( function_exists( 'fom_brand_social' ) ) {
+		foreach ( fom_brand_social() as $network => $url ) {
+			$rows[] = array( 'network' => $network, 'url' => $url );
+		}
+	}
+	return $rows;
+} );
+
 /* Per-category cover banner (category archive header + homepage topic tiles). */
 add_filter( 'vr_category_cover_url', static function ( $url, $term_id ) {
 	$term = $term_id ? get_term( (int) $term_id ) : null;
