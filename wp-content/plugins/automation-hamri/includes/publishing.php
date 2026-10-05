@@ -574,6 +574,13 @@ function wpap_publish_article( array $item, array $opts = array() ) {
     }
     /* Per-article first-comment template (renders {{link}} in the export / "FB post"). */
     if ( $fb_comment_is_tpl ) { update_post_meta( $post_id, '_wpap_fb_comment', $fb_comment_tpl ); }
+    /* 9.44.0: optional Pinterest overrides from the batch contract (pinImage / pinTitle / pinDescription). Without them
+       a pin falls back to the Facebook card / featured image, the post title and the hook / excerpt. */
+    $pin_img = ( isset( $item['pinImage'] ) && is_scalar( $item['pinImage'] ) ) ? esc_url_raw( trim( (string) $item['pinImage'] ) ) : '';
+    if ( '' !== $pin_img && function_exists( 'wpap_is_usable_image_url' ) && wpap_is_usable_image_url( $pin_img ) ) { update_post_meta( $post_id, '_wpap_pin_image', $pin_img ); }
+    foreach ( array( 'pinTitle' => '_wpap_pin_title', 'pinDescription' => '_wpap_pin_description' ) as $pin_k => $pin_mk ) {
+        if ( isset( $item[ $pin_k ] ) && is_scalar( $item[ $pin_k ] ) && '' !== trim( (string) $item[ $pin_k ] ) ) { update_post_meta( $post_id, $pin_mk, sanitize_textarea_field( (string) $item[ $pin_k ] ) ); }
+    }
     /* _wpap_source_key is written via wp_insert_post( meta_input ) above — early and
        atomic, so a throw in the category/image/SEO steps can't orphan the dedup key. */
 
@@ -1161,6 +1168,57 @@ function wpap_bundle_resolve_image( $base_dir, $root, $rel ) {
     return $real;
 }
 
+/** In-article images from the zip: every <img src="images/..."> in the published post whose src is a RELATIVE
+ *  path (not http(s)/data:/protocol-relative) is resolved safely inside the extract root, sideloaded into the
+ *  media library (attached to the post, NOT set as thumbnail), and its src rewritten to the attachment URL.
+ *  A missing/unsafe/invalid file drops that <img> so no broken relative path is ever left on the live post.
+ *  Returns the number of images imported. */
+function wpap_bundle_sideload_inline_images( int $post_id, $img_base, $work, string $title, array &$messages, int $row_number ) {
+    $post = get_post( $post_id );
+    if ( ! $post ) { return 0; }
+    $content = (string) $post->post_content;
+    if ( false === stripos( $content, '<img' ) ) { return 0; }
+
+    $max_inline = (int) apply_filters( 'wpap_bundle_max_inline_images', 30 );
+    $done       = array();   /* rel path → attachment URL ('' = failed), so a repeated src imports once */
+    $imported   = 0;
+    $new = preg_replace_callback(
+        '#<img\b[^>]*?\bsrc=(["\'])(?!https?:|data:|//)([^"\']+)\1[^>]*>#i',
+        function ( $m ) use ( &$done, &$imported, &$messages, $max_inline, $post_id, $img_base, $work, $title, $row_number ) {
+            $rel = html_entity_decode( $m[2], ENT_QUOTES );
+            if ( ! array_key_exists( $rel, $done ) ) {
+                $done[ $rel ] = '';
+                if ( $imported < $max_inline ) {
+                    $local = wpap_bundle_resolve_image( $img_base, $work, $rel );
+                    if ( '' !== $local ) {
+                        $aid = wpap_import_local_image_as_attachment( $local, $post_id, $title );
+                        if ( ! is_wp_error( $aid ) ) {
+                            update_post_meta( (int) $aid, '_wp_attachment_image_alt', $title );
+                            $done[ $rel ] = (string) wp_get_attachment_url( (int) $aid );
+                            $imported++;
+                        } else {
+                            $messages[] = sprintf( 'Row %d: in-article image "%s" skipped: %s', $row_number, sanitize_text_field( $rel ), $aid->get_error_message() );
+                        }
+                    } else {
+                        $messages[] = sprintf( 'Row %d: in-article image "%s" was not found in the zip.', $row_number, sanitize_text_field( $rel ) );
+                    }
+                }
+            }
+            if ( '' === $done[ $rel ] ) { return ''; }   /* never leave a broken relative src on a live post */
+            return str_replace( $m[1] . $m[2] . $m[1], $m[1] . esc_url( $done[ $rel ] ) . $m[1], $m[0] );
+        },
+        $content
+    );
+    if ( null !== $new && $new !== $content ) {
+        global $wpdb;
+        /* Direct update (like the <!--nextpage--> guard in wpap_publish_article): content was already kses'd on
+           insert; only src values changed, and a wp_update_post round-trip could strip the page-break markers. */
+        $wpdb->update( $wpdb->posts, array( 'post_content' => $new ), array( 'ID' => $post_id ) );
+        clean_post_cache( $post_id );
+    }
+    return $imported;
+}
+
 /** AJAX: publish a whole .zip bundle. manage_options only; nonce + fatal-shield; ZipArchive required. */
 add_action( 'wp_ajax_wpap_bulk_publish_zip', 'wpap_ajax_bulk_publish_zip' );
 function wpap_ajax_bulk_publish_zip() {
@@ -1352,6 +1410,7 @@ function wpap_ajax_bulk_publish_zip() {
             }
 
             $post_id   = (int) $result;
+            $inline    = wpap_bundle_sideload_inline_images( $post_id, $img_base, $work, (string) ( $item['title'] ?? '' ), $messages, $row_number );
             $post      = get_post( $post_id );
             $post_url  = wpap_public_permalink( $post_id );
             $image_url = (string) get_post_meta( $post_id, '_wpap_image_url', true );
@@ -1364,6 +1423,7 @@ function wpap_ajax_bulk_publish_zip() {
                 'title'           => $post ? $post->post_title : '',
                 'post_url'        => (string) $post_url,
                 'has_image'       => $image_url ? 1 : 0,
+                'inline_images'   => $inline,
                 'post_status'     => $status,
                 'scheduled_label' => $label,
             );

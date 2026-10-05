@@ -45,6 +45,11 @@ function wpap_render_settings() {
         }
         update_option( 'wpap_settings', $saved, false );   /* autoload = no: keep secrets out of the all-options cache */
 
+        /* 9.43.0: Facebook Page auto-poster settings (same nonce + capability guard). */
+        if ( function_exists( 'wpap_fbp_save_from_post' ) ) { wpap_fbp_save_from_post(); }
+        if ( function_exists( 'wpap_igp_save_from_post' ) ) { wpap_igp_save_from_post(); }   /* 9.44.0 (after the Facebook settings: it re-evaluates the shared cron) */
+        if ( function_exists( 'wpap_pin_save_from_post' ) ) { wpap_pin_save_from_post(); }
+
         /* ── Automation (Google Sheet) settings — same nonce/cap guard ── */
         update_option( 'wpap_automation', array(
             'enabled'          => isset( $_POST['wpap_auto_enabled'] ) ? 1 : 0,
@@ -126,6 +131,8 @@ function wpap_render_settings() {
             'skip_dupe_titles' => isset( $_POST['wpap_skip_dupe_titles'] ) ? 1 : 0,
             'disable_comments' => isset( $_POST['wpap_disable_comments'] ) ? 1 : 0,
             'clean_media'      => isset( $_POST['wpap_clean_media'] ) ? 1 : 0,
+            /* AI-search discoverability: serve /llms.txt + /ai.txt (opt-in, default off). */
+            'llms_txt'         => isset( $_POST['wpap_llms_txt'] ) ? 1 : 0,
             /* Global default first-comment template (Distribution Hub / export). {{link}} is
                replaced by each post's link; a per-post _wpap_fb_comment override wins. */
             'fb_comment_template' => mb_substr( sanitize_textarea_field( (string) wp_unslash( $_POST['wpap_fb_comment_template'] ?? '' ) ), 0, 2000 ),
@@ -698,6 +705,16 @@ function wpap_render_settings() {
                 </tr>
             </table>
 
+            <h2 style="margin-top:32px;">AI search discoverability</h2>
+            <p class="description" style="max-width:760px;">Serves two small files that AI assistants (ChatGPT, Claude, Perplexity, Grok) look for &mdash; generated automatically from your live content. Complements your XML sitemap; it does <strong>not</strong> replace it (Google doesn&rsquo;t rank on these). Opt-in, off by default. Purge any page cache after saving.</p>
+            <table class="form-table">
+                <tr>
+                    <th scope="row">Serve llms.txt &amp; ai.txt</th>
+                    <td><label><input type="checkbox" name="wpap_llms_txt" value="1" <?php checked( ! empty( $copts_ui['llms_txt'] ) ); ?> /> Serve <code>/llms.txt</code> (a plain-text map of your site &mdash; name, tagline, each category with its posts, following the <em>llmstxt.org</em> convention) and <code>/ai.txt</code> (an AI-crawler policy that welcomes crawling and citation with attribution and points to your sitemap)</label>
+                        <p class="description">Both are generated from your live posts and pages and refresh when you publish. Once on, visit <code><?php echo esc_html( home_url( '/llms.txt' ) ); ?></code> to confirm. A real <code>llms.txt</code>/<code>ai.txt</code> file at your site root always wins.</p></td>
+                </tr>
+            </table>
+
             <h2 style="margin-top:32px;">Duplicate cleanup</h2>
             <p class="description" style="max-width:860px;">Finds posts that cover the <strong>same topic under a reworded title</strong> &mdash; the near-duplicates the exact-title guard can&rsquo;t catch (e.g. &ldquo;Rice Water for Tender Skin&rdquo; vs &ldquo;The Humblest Medicine: Rice Water&hellip;&rdquo;). It groups them, keeps the <strong>oldest original</strong>, and lets you move the rest to <strong>Trash</strong> (recoverable). Duplicate/thin content is a common AdSense &amp; SEO problem &mdash; but always <strong>review the list and untick any false positive</strong> (two different recipes can share words) before trashing.</p>
             <p>
@@ -797,6 +814,10 @@ function wpap_render_settings() {
                 </tr>
                 <?php endif; ?>
             </table>
+
+            <?php if ( function_exists( 'wpap_fbp_render_settings' ) ) { wpap_fbp_render_settings(); } /* 9.43.0 */ ?>
+            <?php if ( function_exists( 'wpap_igp_render_settings' ) ) { wpap_igp_render_settings(); } /* 9.44.0 */ ?>
+            <?php if ( function_exists( 'wpap_pin_render_settings' ) ) { wpap_pin_render_settings(); } /* 9.44.0 */ ?>
 
             <?php submit_button( 'Save Settings', 'primary', 'wpap_save' ); ?>
         </form>
@@ -952,7 +973,7 @@ function wpap_render_bundle() {
     ?>
     <div class="wrap">
       <h1>Bulk ZIP Publish</h1>
-      <p style="max-width:820px">Upload one <code>.zip</code> containing a <code>posts.json</code> plus the image files it references. Every post is published with its image pulled <strong>straight from the zip</strong> — no image hosting or public URLs needed. <code>posts.json</code> is an array of <code>{ "title", "content", "hook", "image" }</code>, where <code>image</code> is the path inside the zip (e.g. <code>images/remedy_01.jpg</code>). If <code>image</code> is an <code>http(s)</code> URL instead, it's downloaded the normal way.</p>
+      <p style="max-width:820px">Upload one <code>.zip</code> containing a <code>posts.json</code> plus the image files it references. Every post is published with its image pulled <strong>straight from the zip</strong> — no image hosting or public URLs needed. <code>posts.json</code> is an array of <code>{ "title", "content", "hook", "image" }</code>, where <code>image</code> is the path inside the zip (e.g. <code>images/remedy_01.jpg</code>). If <code>image</code> is an <code>http(s)</code> URL instead, it's downloaded the normal way. Images <em>inside</em> the article work too: any <code>&lt;img src="images/…"&gt;</code> in <code>content</code> that points at a file in the zip is imported into the Media Library and its link rewritten automatically.</p>
       <?php if ( ! $has_zip ) : ?>
       <div class="notice notice-error"><p>PHP's <code>ZipArchive</code> extension is not available on this server. Ask your host to enable the <code>zip</code> PHP extension to use Bulk ZIP Publish.</p></div>
       <?php endif; ?>

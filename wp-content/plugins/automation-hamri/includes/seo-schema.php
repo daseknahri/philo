@@ -799,3 +799,120 @@ function wpap_fb_ids_head() {
         echo "\n<!-- Automation Hamri Facebook IDs -->\n" . $out; // phpcs:ignore WordPress.Security.EscapeOutput -- values escaped above
     }
 }
+
+/* ════════════════════════════════════════════
+   llms.txt / ai.txt — AI-crawler discoverability (opt-in `llms_txt`, DEFAULT OFF).
+   Serves a plain-text map of the site at /llms.txt (llmstxt.org convention) + an AI-crawler policy at
+   /ai.txt, both generated from live content and cached. The request hooks are registered ONLY when the
+   option is on (passive when unused). A real static file at the site root always wins — WordPress never
+   routes an existing file through PHP, so this only answers when no such file exists.
+   ════════════════════════════════════════════ */
+function wpap_llms_txt_enabled() {
+    $c = get_option( 'wpap_content_opts', array() );
+    return is_array( $c ) && ! empty( $c['llms_txt'] );
+}
+if ( wpap_llms_txt_enabled() ) {
+    add_action( 'template_redirect', 'wpap_llms_txt_serve', 0 );
+    add_action( 'save_post', 'wpap_llms_txt_flush' );
+}
+function wpap_llms_txt_flush() {
+    delete_transient( 'wpap_llms_txt_cache' );
+}
+function wpap_llms_txt_serve() {
+    $path = strtok( (string) ( $_SERVER['REQUEST_URI'] ?? '' ), '?' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- compared to a literal allowlist below, never output
+    $path = '/' . ltrim( untrailingslashit( $path ), '/' );
+    if ( '/llms.txt' !== $path && '/ai.txt' !== $path ) {
+        return;
+    }
+    /* WordPress 404s an unknown path before template_redirect; force 200 or crawlers ignore the body. */
+    status_header( 200 );
+    nocache_headers();
+    header( 'Content-Type: text/plain; charset=utf-8' );
+    header( 'X-Robots-Tag: noindex, follow' );
+    if ( '/ai.txt' === $path ) {
+        echo wpap_build_ai_txt(); // phpcs:ignore WordPress.Security.EscapeOutput -- plain-text file body, not HTML
+        exit;
+    }
+    $body = get_transient( 'wpap_llms_txt_cache' );
+    if ( false === $body ) {
+        $body = wpap_build_llms_txt();
+        set_transient( 'wpap_llms_txt_cache', $body, 12 * HOUR_IN_SECONDS );
+    }
+    echo $body; // phpcs:ignore WordPress.Security.EscapeOutput -- plain-text file body, not HTML
+    exit;
+}
+function wpap_build_ai_txt() {
+    $home    = home_url( '/' );
+    $sitemap = home_url( '/wp-sitemap.xml' );
+    $lines   = array(
+        '# ai.txt — AI crawler policy for ' . get_bloginfo( 'name' ),
+        '# Original content. Crawling and citation with attribution are welcome.',
+        '',
+        'User-agent: *',
+        'Allow: /',
+        'Disallow: /wp-admin/',
+        '',
+        'Sitemap: ' . $sitemap,
+        'Guidance: ' . $home . 'llms.txt',
+    );
+    /** Filter the ai.txt lines (array of plain strings, joined with newlines). */
+    $lines = apply_filters( 'wpap_ai_txt_lines', $lines );
+    return implode( "\n", (array) $lines ) . "\n";
+}
+function wpap_build_llms_txt() {
+    $name = get_bloginfo( 'name' );
+    $desc = get_bloginfo( 'description' );
+    $out  = '# ' . $name . "\n\n";
+    if ( '' !== (string) $desc ) {
+        $out .= '> ' . $desc . "\n\n";
+    }
+    /** Filter an intro paragraph placed under the site name/tagline (default empty). */
+    $intro = (string) apply_filters( 'wpap_llms_intro', '' );
+    if ( '' !== $intro ) {
+        $out .= $intro . "\n\n";
+    }
+    $cats = get_categories( array(
+        'orderby'    => 'count',
+        'order'      => 'DESC',
+        'hide_empty' => true,
+    ) );
+    foreach ( $cats as $cat ) {
+        $q = new WP_Query( array(
+            'cat'                 => $cat->term_id,
+            'posts_per_page'      => 20,
+            'post_status'         => 'publish',
+            'ignore_sticky_posts' => true,
+            'orderby'             => 'date',
+            'order'               => 'DESC',
+            'no_found_rows'       => true,
+        ) );
+        if ( ! $q->have_posts() ) {
+            continue;
+        }
+        $out .= '## ' . $cat->name . "\n";
+        while ( $q->have_posts() ) {
+            $q->the_post();
+            $title = get_the_title();
+            $url   = get_permalink();
+            $ex    = trim( wp_strip_all_tags( get_the_excerpt() ) );
+            if ( function_exists( 'mb_strlen' ) && mb_strlen( $ex ) > 130 ) {
+                $ex = rtrim( mb_substr( $ex, 0, 130 ) ) . '…';
+            }
+            $out .= '- [' . $title . '](' . $url . ')' . ( '' !== $ex ? ': ' . $ex : '' ) . "\n";
+        }
+        wp_reset_postdata();
+        $out .= "\n";
+    }
+    $pages = get_pages( array(
+        'sort_column' => 'menu_order',
+        'parent'      => 0,
+    ) );
+    if ( $pages ) {
+        $out .= "## Pages\n";
+        foreach ( $pages as $p ) {
+            $out .= '- [' . get_the_title( $p->ID ) . '](' . get_permalink( $p->ID ) . ")\n";
+        }
+        $out .= "\n";
+    }
+    return $out;
+}
