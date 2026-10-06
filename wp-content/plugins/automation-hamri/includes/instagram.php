@@ -227,11 +227,14 @@ function wpap_igp_file_for_url( $url ) {
 /* The image to post: the pin image when it is a file on this site, else (build-v9) the Facebook card image, else the
    featured image. */
 function wpap_igp_source_file( $pid ) {
+	/* the blog's featured image first, so Instagram shows exactly what the article shows */
+	$f = wpap_fbp_image_file( (int) get_post_thumbnail_id( $pid ) );
+	if ( '' !== $f ) { return $f; }
 	foreach ( array( '_wpap_pin_image', '_wpap_fb_image_url' ) as $key ) {
 		$f = wpap_igp_file_for_url( (string) get_post_meta( $pid, $key, true ) );
 		if ( '' !== $f ) { return $f; }
 	}
-	return wpap_fbp_image_file( (int) get_post_thumbnail_id( $pid ) );
+	return '';
 }
 
 /* Build the public JPEG Instagram fetches: 1080 wide, ratio clamped to 4:5–1.91:1; a source outside that range is
