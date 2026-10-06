@@ -38,20 +38,7 @@ if ( ! function_exists( 'wpap_apply_utm' ) ) {
 	}
 }
 
-/* Hover-help "i" bubble. Tips come from the `wpap_help_tips_extra` filter (authored copy, kses-restricted). */
-if ( ! function_exists( 'wpap_help_tip' ) ) {
-	function wpap_help_tip( $key ) {
-		$tips = apply_filters( 'wpap_help_tips_extra', array() );
-		if ( empty( $tips[ $key ] ) ) { return ''; }
-		$allowed = array(
-			'strong' => array(), 'b' => array(), 'em' => array(), 'i' => array(),
-			'br' => array(), 'ul' => array(), 'ol' => array(), 'li' => array(), 'code' => array(),
-		);
-		return '<span class="wpap-help" tabindex="0" role="img" aria-label="How to use this setting — hover or focus for directions">'
-			. '<span class="wpap-help-i" aria-hidden="true">i</span>'
-			. '<span class="wpap-tip" role="tooltip">' . wp_kses( (string) $tips[ $key ], $allowed ) . '</span></span>';
-	}
-}
+/* wpap_help_tip() now lives in includes/admin-ui.php (loaded first). */
 
 /* When the next share is due, as site-time text (or why nothing is due). */
 function wpap_fbp_next_text( $o ) {

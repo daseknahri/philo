@@ -171,7 +171,7 @@ function wpap_render_settings() {
 
     /* Render one settings row: a locked note when constant-defined, else the input. */
     $render_key_row = function ( $label, $field, $desc_html = '' ) use ( $s, $hint, $is_const, $const_map ) {
-        echo '<tr><th>' . esc_html( $label ) . '</th><td>';
+        echo '<tr><th>' . esc_html( $label ) . ' ' . wpap_help_tip( 'v9_' . $field ) . '</th><td>';
         if ( $is_const( $field ) ) {
             echo '<input type="text" value="' . esc_attr( 'Set via wp-config.php' ) . '" class="large-text" disabled />';
             echo '<p class="description">&#128274; Defined in <code>wp-config.php</code> via <code>' . esc_html( $const_map[ $field ] ) . '</code>. Remove that constant to manage this key here.</p>';
@@ -186,8 +186,30 @@ function wpap_render_settings() {
     ?>
     <div class="wrap">
         <h1>WP Automator Pro &mdash; Settings</h1>
+        <?php
+        wpap_settings_ui_css();
+        wpap_settings_nav( array(
+            'wpap-sec-keys'      => 'API keys',
+            'wpap-sec-sheet'     => 'Google Sheet',
+            'wpap-sec-ads'       => 'Ads',
+            'wpap-sec-content'   => 'Content options',
+            'wpap-sec-fbids'     => 'Facebook IDs',
+            'wpap-sec-ai'        => 'AI search',
+            'wpap-sec-dupes'     => 'Duplicate cleanup',
+            'wpap-sec-adstxt'    => 'ads.txt',
+            'wpap-sec-indexnow'  => 'IndexNow',
+            'wpap-grp-fbpage'    => 'Facebook Page',
+            'wpap-grp-instagram' => 'Instagram',
+            'wpap-grp-pinterest' => 'Pinterest',
+            'wpap-sec-status'    => 'Status',
+            'wpap-sec-ilinks'    => 'Internal linking',
+            'wpap-sec-backup'    => 'Backup',
+        ) );
+        ?>
         <form method="post" autocomplete="off">
             <?php wp_nonce_field( 'wpap_settings_nonce' ); ?>
+            <?php wpap_group_start( 'wpap-sec-keys', 'API keys', 'only for the AI tools', true ); ?>
+            <p class="description" style="max-width:760px;">Used only by the AI generation tools. Publishing from a file, a ZIP or a Google Sheet does not need them.</p>
             <table class="form-table">
                 <?php
                 $render_key_row( 'Claude API Key', 'claude_api_key' );
@@ -196,8 +218,9 @@ function wpap_render_settings() {
                 ?>
             </table>
 
+            <?php wpap_group_end(); ?>
             <?php /* ── Automation — Google Sheet (config; saved by the same button) ── */ ?>
-            <h2 style="margin-top:32px;">Automation &mdash; Google Sheet</h2>
+            <?php wpap_group_start( 'wpap-sec-sheet', 'Automation: Google Sheet', 'auto-publish rows from a Sheet' ); ?>
             <p class="description" style="max-width:760px;">
                 Auto-publish ready-made articles straight from a Google Sheet &mdash; no API key or login.
                 In Google Sheets: <strong>File &rarr; Share &rarr; Publish to web</strong>, choose the specific
@@ -215,7 +238,7 @@ function wpap_render_settings() {
             </p>
             <table class="form-table">
                 <tr>
-                    <th scope="row">Enable auto-publish</th>
+                    <th scope="row">Enable auto-publish <?php echo wpap_help_tip( 'v9_auto_enabled' ); ?></th>
                     <td>
                         <label>
                             <input type="checkbox" name="wpap_auto_enabled" value="1" <?php checked( ! empty( $auto['enabled'] ) ); ?> />
@@ -224,7 +247,7 @@ function wpap_render_settings() {
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row">Published CSV URL</th>
+                    <th scope="row">Published CSV URL <?php echo wpap_help_tip( 'v9_auto_sheet_url' ); ?></th>
                     <td>
                         <input type="url" name="wpap_auto_sheet_url" class="large-text" value="<?php echo esc_attr( $auto['sheet_url'] ); ?>"
                                placeholder="https://docs.google.com/spreadsheets/d/e/&hellip;/pub?gid=0&amp;single=true&amp;output=csv" />
@@ -232,22 +255,22 @@ function wpap_render_settings() {
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row">Max per day</th>
+                    <th scope="row">Max per day <?php echo wpap_help_tip( 'v9_auto_per_day' ); ?></th>
                     <td><input type="number" name="wpap_auto_per_day" min="0" max="500" step="1" class="small-text" value="<?php echo esc_attr( (string) $auto['per_day'] ); ?>" /></td>
                 </tr>
                 <tr>
-                    <th scope="row">Max per run</th>
+                    <th scope="row">Max per run <?php echo wpap_help_tip( 'v9_auto_per_run' ); ?></th>
                     <td>
                         <input type="number" name="wpap_auto_per_run" min="1" max="50" step="1" class="small-text" value="<?php echo esc_attr( (string) $auto['per_run'] ); ?>" />
                         <p class="description">Published each hourly run, capped by the daily limit.</p>
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row">Default category</th>
+                    <th scope="row">Default category <?php echo wpap_help_tip( 'v9_auto_default_category' ); ?></th>
                     <td><input type="text" name="wpap_auto_default_category" class="regular-text" placeholder="Uncategorized" value="<?php echo esc_attr( $auto['default_category'] ); ?>" /></td>
                 </tr>
                 <tr>
-                    <th scope="row">Schedule window (hours)</th>
+                    <th scope="row">Schedule window (hours) <?php echo wpap_help_tip( 'v9_auto_schedule_window' ); ?></th>
                     <td>
                         <input type="number" name="wpap_auto_schedule_window" min="0" max="168" step="0.5" class="small-text" value="<?php echo esc_attr( (string) $auto['schedule_window'] ); ?>" />
                         <p class="description">0 = publish immediately. Otherwise each post is scheduled at a random time within this many hours.</p>
@@ -258,7 +281,8 @@ function wpap_render_settings() {
             <?php /* ── ads.txt (AdSense) ── */ ?>
             <?php /* ── AdSense ad placement (ported engine; saved by the same button) ── */ ?>
             <?php $ads = wpap_get_ads(); ?>
-            <h2 style="margin-top:32px;">AdSense ad placement</h2>
+            <?php wpap_group_end(); ?>
+            <?php wpap_group_start( 'wpap-sec-ads', 'AdSense ad placement', 'slots, zones, live preview, earnings' ); ?>
             <p class="description" style="max-width:820px;">
                 Paste your own AdSense code into any slot below and turn it on. <strong>Auto Ads</strong> lets Google
                 place ads automatically; the <strong>manual slots</strong> give you exact control (use an
@@ -508,7 +532,7 @@ function wpap_render_settings() {
 
             <table class="form-table">
                 <tr>
-                    <th scope="row">Enable ads</th>
+                    <th scope="row">Enable ads <?php echo wpap_help_tip( 'v9_ads_enabled' ); ?></th>
                     <td>
                         <label><input type="checkbox" name="wpap_ads_enabled" value="1" <?php checked( ! empty( $ads['enabled'] ) ); ?>> Master switch — print ads on the front end</label><br>
                         <label style="display:inline-block;margin-top:6px;"><input type="checkbox" name="wpap_ads_scope_all" value="1" <?php checked( ! empty( $ads['scope_all'] ) ); ?>> Apply to <strong>all</strong> posts (off = only posts this plugin created)</label><br>
@@ -516,14 +540,14 @@ function wpap_render_settings() {
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row">Auto Ads code</th>
+                    <th scope="row">Auto Ads code <?php echo wpap_help_tip( 'v9_ads_auto_code' ); ?></th>
                     <td>
                         <textarea name="wpap_ads_auto_code" rows="4" class="large-text code" placeholder="&lt;script async src=&quot;https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXX&quot; crossorigin=&quot;anonymous&quot;&gt;&lt;/script&gt;"><?php echo esc_textarea( (string) $ads['auto_code'] ); ?></textarea>
                         <p class="description">Your Auto Ads snippet from AdSense. This snippet is also the loader for the manual units below, so pasting it once is enough.</p>
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row">In-content density</th>
+                    <th scope="row">In-content density <?php echo wpap_help_tip( 'v9_ads_density' ); ?></th>
                     <td>
                         Min paragraphs between ads: <input type="number" name="wpap_ads_min_gap" min="0" max="20" step="1" value="<?php echo esc_attr( (string) $ads['min_gap'] ); ?>" class="small-text" />
                         &nbsp;&nbsp; Max in-content ads per post (0 = no limit): <input type="number" name="wpap_ads_max_ads" min="0" max="20" step="1" value="<?php echo esc_attr( (string) $ads['max_ads'] ); ?>" class="small-text" />
@@ -534,14 +558,14 @@ function wpap_render_settings() {
             <h3 style="margin-top:20px;">Manual slots</h3>
             <table class="form-table">
                 <tr>
-                    <th scope="row">Top of article</th>
+                    <th scope="row">Top of article <?php echo wpap_help_tip( 'v9_ads_top' ); ?></th>
                     <td>
                         <label><input type="checkbox" name="wpap_ads_top_on" value="1" <?php checked( ! empty( $ads['slots']['top']['on'] ) ); ?>> On</label>
                         <textarea name="wpap_ads_top_code" rows="3" class="large-text code" placeholder="Paste an AdSense unit…"><?php echo esc_textarea( (string) $ads['slots']['top']['code'] ); ?></textarea>
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row">In-content (after a paragraph)</th>
+                    <th scope="row">In-content (after a paragraph) <?php echo wpap_help_tip( 'v9_ads_inc' ); ?></th>
                     <td>
                         <label><input type="checkbox" name="wpap_ads_inc_on" value="1" <?php checked( ! empty( $ads['slots']['incontent']['on'] ) ); ?>> On</label>
                         &nbsp; after paragraph <input type="number" name="wpap_ads_inc_after" min="1" max="50" step="1" value="<?php echo esc_attr( (string) $ads['slots']['incontent']['after'] ); ?>" class="small-text" />
@@ -549,7 +573,7 @@ function wpap_render_settings() {
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row">Repeating in-content</th>
+                    <th scope="row">Repeating in-content <?php echo wpap_help_tip( 'v9_ads_rep' ); ?></th>
                     <td>
                         <label><input type="checkbox" name="wpap_ads_rep_on" value="1" <?php checked( ! empty( $ads['slots']['repeat']['on'] ) ); ?>> On</label>
                         &nbsp; every <input type="number" name="wpap_ads_rep_every" min="1" max="50" step="1" value="<?php echo esc_attr( (string) $ads['slots']['repeat']['every'] ); ?>" class="small-text" /> paragraphs,
@@ -558,7 +582,7 @@ function wpap_render_settings() {
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row">Bottom of article</th>
+                    <th scope="row">Bottom of article <?php echo wpap_help_tip( 'v9_ads_bot' ); ?></th>
                     <td>
                         <label><input type="checkbox" name="wpap_ads_bot_on" value="1" <?php checked( ! empty( $ads['slots']['bottom']['on'] ) ); ?>> On</label>
                         <textarea name="wpap_ads_bot_code" rows="3" class="large-text code" placeholder="Paste an AdSense unit…"><?php echo esc_textarea( (string) $ads['slots']['bottom']['code'] ); ?></textarea>
@@ -570,21 +594,21 @@ function wpap_render_settings() {
             <p class="description" style="max-width:820px;">Filled into a compatible theme's ad zones (via <code>wpap_zone_html()</code>). If your theme doesn't call it, these are simply unused.</p>
             <table class="form-table">
                 <tr>
-                    <th scope="row">Header</th>
+                    <th scope="row">Header <?php echo wpap_help_tip( 'v9_ads_zone_header' ); ?></th>
                     <td>
                         <label><input type="checkbox" name="wpap_ads_zone_header_on" value="1" <?php checked( ! empty( $ads['zones']['header']['on'] ) ); ?>> On</label>
                         <textarea name="wpap_ads_zone_header_code" rows="2" class="large-text code"><?php echo esc_textarea( (string) $ads['zones']['header']['code'] ); ?></textarea>
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row">Sidebar</th>
+                    <th scope="row">Sidebar <?php echo wpap_help_tip( 'v9_ads_zone_sidebar' ); ?></th>
                     <td>
                         <label><input type="checkbox" name="wpap_ads_zone_sidebar_on" value="1" <?php checked( ! empty( $ads['zones']['sidebar']['on'] ) ); ?>> On</label>
                         <textarea name="wpap_ads_zone_sidebar_code" rows="2" class="large-text code"><?php echo esc_textarea( (string) $ads['zones']['sidebar']['code'] ); ?></textarea>
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row">Footer</th>
+                    <th scope="row">Footer <?php echo wpap_help_tip( 'v9_ads_zone_footer' ); ?></th>
                     <td>
                         <label><input type="checkbox" name="wpap_ads_zone_footer_on" value="1" <?php checked( ! empty( $ads['zones']['footer']['on'] ) ); ?>> On</label>
                         <textarea name="wpap_ads_zone_footer_code" rows="2" class="large-text code"><?php echo esc_textarea( (string) $ads['zones']['footer']['code'] ); ?></textarea>
@@ -593,7 +617,7 @@ function wpap_render_settings() {
             </table>
 
             <?php /* ── Custom placements (Option 2): unlimited, up to 10 — {pos, after, code} rows ── */ ?>
-            <h3 style="margin-top:20px;">Custom placements <span style="font-weight:400;color:#666;">— add your own, up to 10</span></h3>
+            <h3 style="margin-top:20px;">Custom placements <span style="font-weight:400;color:#666;">— add your own, up to 10</span> <?php echo wpap_help_tip( 'v9_ads_custom' ); ?></h3>
             <p class="description" style="max-width:820px;">Place an extra unit exactly where you want it: <strong>after paragraph&nbsp;N</strong>, at the <strong>top</strong> of the article, or <strong>before the related posts</strong>. Each row needs its own AdSense code, and all placements honour the min-gap / max-ads caps below. A row left blank is simply dropped on save.</p>
             <div id="wpap-cust-rows">
                 <?php
@@ -654,72 +678,76 @@ function wpap_render_settings() {
             $copts_ui = get_option( 'wpap_content_opts', array() );
             if ( ! is_array( $copts_ui ) ) { $copts_ui = array(); }
             ?>
-            <h2 style="margin-top:32px;">Content options</h2>
+            <?php wpap_group_end(); ?>
+            <?php wpap_group_start( 'wpap-sec-content', 'Content options', 'duplicates, word count, comments, images' ); ?>
             <p class="description" style="max-width:760px;">Optional safety nets for Direct Publish &amp; the Google-Sheet automation. All off by default.</p>
             <table class="form-table">
                 <tr>
-                    <th scope="row">Skip duplicate titles</th>
+                    <th scope="row">Skip duplicate titles <?php echo wpap_help_tip( 'v9_skip_dupe_titles' ); ?></th>
                     <td><label><input type="checkbox" name="wpap_skip_dupe_titles" value="1" <?php checked( ! empty( $copts_ui['skip_dupe_titles'] ) ); ?> /> Don't publish a post if one with the same title already exists</label>
                         <p class="description">Protects against creating duplicates when you re-upload the same file/batch.</p></td>
                 </tr>
                 <tr>
-                    <th scope="row">Minimum word count</th>
+                    <th scope="row">Minimum word count <?php echo wpap_help_tip( 'v9_min_words' ); ?></th>
                     <td><input type="number" name="wpap_min_words" min="0" max="5000" step="10" class="small-text" value="<?php echo esc_attr( (string) ( $copts_ui['min_words'] ?? 0 ) ); ?>" /> words
                         <p class="description">Skip publishing a post whose body is below this. 0 = no minimum.</p></td>
                 </tr>
                 <tr>
-                    <th scope="row">Disable comments</th>
+                    <th scope="row">Disable comments <?php echo wpap_help_tip( 'v9_disable_comments' ); ?></th>
                     <td><label><input type="checkbox" name="wpap_disable_comments" value="1" <?php checked( ! empty( $copts_ui['disable_comments'] ) ); ?> /> Close comments on posts this plugin publishes</label></td>
                 </tr>
                 <tr>
-                    <th scope="row">Clean media</th>
+                    <th scope="row">Clean media <?php echo wpap_help_tip( 'v9_clean_media' ); ?></th>
                     <td><label><input type="checkbox" name="wpap_clean_media" value="1" <?php checked( ! empty( $copts_ui['clean_media'] ) ); ?> /> Rename imported images from the post title (SEO-friendly) and strip EXIF/metadata</label>
                         <p class="description">Off by default. Applies to remote downloads and Bulk-ZIP local images.</p></td>
                 </tr>
                 <tr>
-                    <th scope="row">First-comment text</th>
+                    <th scope="row">First-comment text <?php echo wpap_help_tip( 'v9_fb_comment_template' ); ?></th>
                     <td>
                         <textarea id="wpap_fb_comment_template" name="wpap_fb_comment_template" rows="4" class="large-text code" placeholder="&#128073; Full article here:&#10;{{link}}&#10;&#10;&#10102; Save &amp; share!"><?php echo esc_textarea( (string) ( $copts_ui['fb_comment_template'] ?? '' ) ); ?></textarea>
                         <p class="description">Default text for the Distribution Hub's exported <strong>first comment</strong>. Use <code>{{link}}</code> where the article link goes (omit it and the link is appended on its own line). Leave blank to export just the bare link. A single post can override this from its Hub row (&#9999;&#65039; Comment).</p>
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row">Convert images to WebP</th>
+                    <th scope="row">Convert images to WebP <?php echo wpap_help_tip( 'v9_webp' ); ?></th>
                     <td><label><input type="checkbox" name="wpap_webp_enabled" value="1" <?php checked( '1' === (string) get_option( 'wpap_webp_enabled', '1' ) ); ?> /> Re-encode downloaded JPEG/PNG images to WebP &mdash; ~25&ndash;50% smaller, faster on mobile</label>
                         <p class="description">On by default. Applies to newly imported images (featured image + all sizes). Needs GD or Imagick with WebP support (standard on most hosts); if unsupported it keeps the original automatically, so publishing is never affected.</p></td>
                 </tr>
             </table>
 
-            <h2 style="margin-top:32px;">Facebook identifiers</h2>
+            <?php wpap_group_end(); ?>
+            <?php wpap_group_start( 'wpap-sec-fbids', 'Facebook identifiers', 'domain verification, App ID' ); ?>
             <p class="description" style="max-width:760px;">Both optional and empty by default &mdash; nothing is added to your pages until you fill one in. Purge any page cache after saving.</p>
             <table class="form-table">
                 <tr>
-                    <th scope="row">Domain verification</th>
+                    <th scope="row">Domain verification <?php echo wpap_help_tip( 'v9_fb_domain_verify' ); ?></th>
                     <td><input type="text" name="wpap_fb_domain_verify" class="regular-text" value="<?php echo esc_attr( (string) ( $copts_ui['fb_domain_verify'] ?? '' ) ); ?>" placeholder="e.g. a1b2c3d4e5f6g7h8" autocomplete="off" />
                         <p class="description">Proves to Meta that you own this domain, so you control how its links preview on Facebook. In Meta Business Suite &rarr; Settings &rarr; Brand safety &amp; suitability &rarr; Domains, add your domain, choose <em>Add a meta-tag</em>, and paste ONLY the tag&rsquo;s <code>content</code> value here (not the whole tag). Output site-wide &mdash; Meta crawls the homepage <code>&lt;head&gt;</code>.</p></td>
                 </tr>
                 <tr>
-                    <th scope="row">App ID <span style="font-weight:400;color:#666">(<code>fb:app_id</code>)</span></th>
+                    <th scope="row">App ID <span style="font-weight:400;color:#666">(<code>fb:app_id</code>)</span> <?php echo wpap_help_tip( 'v9_fb_app_id' ); ?></th>
                     <td><input type="text" name="wpap_fb_app_id" class="regular-text" value="<?php echo esc_attr( (string) ( $copts_ui['fb_app_id'] ?? '' ) ); ?>" placeholder="numeric app id" inputmode="numeric" autocomplete="off" />
                         <p class="description">Optional. If you have a Meta for Developers app, paste its numeric App ID to silence the Sharing Debugger&rsquo;s &ldquo;missing <code>fb:app_id</code>&rdquo; warning and tie shares to your app for Insights. Output only on this plugin&rsquo;s post pages. Leave blank if you don&rsquo;t have one.</p></td>
                 </tr>
             </table>
 
-            <h2 style="margin-top:32px;">AI search discoverability</h2>
+            <?php wpap_group_end(); ?>
+            <?php wpap_group_start( 'wpap-sec-ai', 'AI search discoverability', 'llms.txt and ai.txt' ); ?>
             <p class="description" style="max-width:760px;">Serves two small files that AI assistants (ChatGPT, Claude, Perplexity, Grok) look for &mdash; generated automatically from your live content. Complements your XML sitemap; it does <strong>not</strong> replace it (Google doesn&rsquo;t rank on these). Opt-in, off by default. Purge any page cache after saving.</p>
             <table class="form-table">
                 <tr>
-                    <th scope="row">Serve llms.txt &amp; ai.txt</th>
+                    <th scope="row">Serve llms.txt &amp; ai.txt <?php echo wpap_help_tip( 'v9_llms_txt' ); ?></th>
                     <td><label><input type="checkbox" name="wpap_llms_txt" value="1" <?php checked( ! empty( $copts_ui['llms_txt'] ) ); ?> /> Serve <code>/llms.txt</code> (a plain-text map of your site &mdash; name, tagline, each category with its posts, following the <em>llmstxt.org</em> convention) and <code>/ai.txt</code> (an AI-crawler policy that welcomes crawling and citation with attribution and points to your sitemap)</label>
                         <p class="description">Both are generated from your live posts and pages and refresh when you publish. Once on, visit <code><?php echo esc_html( home_url( '/llms.txt' ) ); ?></code> to confirm. A real <code>llms.txt</code>/<code>ai.txt</code> file at your site root always wins.</p></td>
                 </tr>
             </table>
 
-            <h2 style="margin-top:32px;">Duplicate cleanup</h2>
+            <?php wpap_group_end(); ?>
+            <?php wpap_group_start( 'wpap-sec-dupes', 'Duplicate cleanup', 'find reworded near-duplicate posts' ); ?>
             <p class="description" style="max-width:860px;">Finds posts that cover the <strong>same topic under a reworded title</strong> &mdash; the near-duplicates the exact-title guard can&rsquo;t catch (e.g. &ldquo;Rice Water for Tender Skin&rdquo; vs &ldquo;The Humblest Medicine: Rice Water&hellip;&rdquo;). It groups them, keeps the <strong>oldest original</strong>, and lets you move the rest to <strong>Trash</strong> (recoverable). Duplicate/thin content is a common AdSense &amp; SEO problem &mdash; but always <strong>review the list and untick any false positive</strong> (two different recipes can share words) before trashing.</p>
             <p>
                 <button type="button" class="button button-primary" id="wpap-dup-scan">&#128269; Scan for duplicates</button>
-                <label style="margin-left:12px">Sensitivity <input type="number" id="wpap-dup-threshold" value="0.42" min="0.2" max="0.95" step="0.02" class="small-text" title="Lower catches looser matches (more false positives); higher is stricter. 0.42 is a good default." /></label>
+                <label style="margin-left:12px">Sensitivity <?php echo wpap_help_tip( 'v9_dup_threshold' ); ?> <input type="number" id="wpap-dup-threshold" value="0.42" min="0.2" max="0.95" step="0.02" class="small-text" title="Lower catches looser matches (more false positives); higher is stricter. 0.42 is a good default." /></label>
                 <button type="button" class="button" id="wpap-dup-trash" style="display:none;margin-left:12px">&#129529; Move checked to Trash</button>
                 <span id="wpap-dup-status" style="margin-left:8px;color:#334155;"></span>
             </p>
@@ -774,7 +802,8 @@ function wpap_render_settings() {
             })();
             </script>
 
-            <h2 style="margin-top:32px;">ads.txt (AdSense)</h2>
+            <?php wpap_group_end(); ?>
+            <?php wpap_group_start( 'wpap-sec-adstxt', 'ads.txt (AdSense)', 'authorised-seller file' ); ?>
             <p class="description" style="max-width:760px;">
                 Paste your ad networks' <code>ads.txt</code> lines. Served automatically at
                 <code><?php echo esc_html( home_url( '/ads.txt' ) ); ?></code> unless a real
@@ -782,14 +811,15 @@ function wpap_render_settings() {
             </p>
             <table class="form-table">
                 <tr>
-                    <th scope="row">ads.txt content</th>
+                    <th scope="row">ads.txt content <?php echo wpap_help_tip( 'v9_ads_txt' ); ?></th>
                     <td><textarea name="wpap_ads_txt" rows="4" class="large-text code" placeholder="google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0"><?php echo esc_textarea( (string) get_option( 'wpap_ads_txt', '' ) ); ?></textarea></td>
                 </tr>
             </table>
 
             <?php /* ── IndexNow (instant indexing) ── */ ?>
             <?php $in_on = wpap_indexnow_enabled(); $in_key = wpap_indexnow_key(); $in_last = get_option( 'wpap_indexnow_last', array() ); ?>
-            <h2 style="margin-top:32px;">Instant indexing (IndexNow)</h2>
+            <?php wpap_group_end(); ?>
+            <?php wpap_group_start( 'wpap-sec-indexnow', 'Instant indexing (IndexNow)', 'ping Bing and others on publish' ); ?>
             <p class="description" style="max-width:760px;">
                 Pings Bing, Yandex &amp; other IndexNow engines the moment a post goes live, so it's
                 crawled in minutes instead of days. <strong>Google doesn't use IndexNow</strong> — for Google,
@@ -797,11 +827,11 @@ function wpap_render_settings() {
             </p>
             <table class="form-table">
                 <tr>
-                    <th scope="row">Enable</th>
+                    <th scope="row">Enable <?php echo wpap_help_tip( 'v9_indexnow_enabled' ); ?></th>
                     <td><label><input type="checkbox" name="wpap_indexnow_enabled" value="1" <?php checked( $in_on ); ?>> Ping on every new publish</label></td>
                 </tr>
                 <tr>
-                    <th scope="row">Key file</th>
+                    <th scope="row">Key file <?php echo wpap_help_tip( 'v9_indexnow_key' ); ?></th>
                     <td>
                         <a href="<?php echo esc_url( home_url( '/' . $in_key . '.txt' ) ); ?>" target="_blank" rel="noopener"><?php echo esc_html( home_url( '/' . $in_key . '.txt' ) ); ?></a>
                         <p class="description">Served automatically — click to confirm it loads (it should show the key).</p>
@@ -815,6 +845,8 @@ function wpap_render_settings() {
                 <?php endif; ?>
             </table>
 
+            <?php wpap_group_end(); ?>
+
             <?php if ( function_exists( 'wpap_fbp_render_settings' ) ) { wpap_fbp_render_settings(); } /* 9.43.0 */ ?>
             <?php if ( function_exists( 'wpap_igp_render_settings' ) ) { wpap_igp_render_settings(); } /* 9.44.0 */ ?>
             <?php if ( function_exists( 'wpap_pin_render_settings' ) ) { wpap_pin_render_settings(); } /* 9.44.0 */ ?>
@@ -823,7 +855,7 @@ function wpap_render_settings() {
         </form>
 
         <?php /* ── Automation status + manual Run-now (own AJAX action, outside the settings form) ── */ ?>
-        <h2 style="margin-top:32px;">Automation status</h2>
+        <?php wpap_group_start( 'wpap-sec-status', 'Automation status', 'last Google-Sheet run + Run now' ); ?>
         <table class="form-table">
             <tr><th scope="row">Last run</th><td><?php echo esc_html( (string) ( $auto_status['last_run']   ?? '—' ) ); ?></td></tr>
             <tr><th scope="row">Rows found</th><td><?php echo esc_html( (string) ( $auto_status['rows_found'] ?? '—' ) ); ?></td></tr>
@@ -860,7 +892,8 @@ function wpap_render_settings() {
         </script>
 
         <?php /* ── Internal linking: manual passes (also auto-run at the end of every bulk publish) ── */ ?>
-        <h2 style="margin-top:32px;">Internal linking</h2>
+        <?php wpap_group_end(); ?>
+        <?php wpap_group_start( 'wpap-sec-ilinks', 'Internal linking', 'activate, resolve and auto-link' ); ?>
         <p class="description" style="max-width:760px;">
             In-content cross-links lift crawl depth and pages-per-session (an SEO / AdSense signal). Both passes are baked into stored content and run automatically after each bulk publish — use these buttons to re-run them across the whole catalogue by hand.
         </p>
@@ -906,7 +939,8 @@ function wpap_render_settings() {
         })();
         </script>
 
-        <h2 style="margin-top:32px;">Backup &amp; restore</h2>
+        <?php wpap_group_end(); ?>
+        <?php wpap_group_start( 'wpap-sec-backup', 'Backup &amp; restore', 'export / import all settings' ); ?>
         <?php
         if ( isset( $_GET['wpap_imported'] ) ) {
             echo '<div class="notice notice-success"><p>Settings imported.</p></div>';
@@ -936,6 +970,8 @@ function wpap_render_settings() {
                 <?php submit_button( 'Import settings', 'secondary', 'submit', false ); ?>
             </form>
         </div>
+
+        <?php wpap_group_end(); ?>
 
         <p style="margin-top:24px;font-size:13px;color:#666;">Need help? Contact Oussama Hamri &mdash; <a href="https://wa.me/+212637122491" target="_blank" rel="noopener" style="color:#6366f1;font-weight:600;text-decoration:none;">Click Here</a></p>
     </div>

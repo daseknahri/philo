@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Automation Hamri
  * Description: An advanced AI-powered bulk content generator for WordPress that automates SEO articles, internal linking, and multi-engine image sourcing. Optimized for high-traffic niches.
- * Version:     9.45.2
+ * Version:     9.46.0
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author:      Oussama Hamri
@@ -622,7 +622,7 @@ function wpap_bulk_max_items() {
     return (int) apply_filters( 'wpap_bulk_max_items', 300 );
 }
 
-define( 'WPAP_VERSION', '9.45.2' );
+define( 'WPAP_VERSION', '9.46.0' );
 define( 'WPAP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WPAP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'WPAP_TABLE',      'wpap_generated_posts' );
@@ -873,6 +873,7 @@ function wpap_enqueue_assets( $hook ) {
  * inside its module. Order below matches original top-level execution order.
  * See ARCHITECTURE.md for the concern map.
  * ---------------------------------------------------------------------- */
+require_once __DIR__ . '/includes/admin-ui.php'; // 9.46.0: settings-page UX helpers (help tips, collapsible groups, section nav) — loaded before admin + social admin files
 require_once __DIR__ . '/includes/admin.php'; // Admin UI — dashboard render + settings page
 require_once __DIR__ . '/includes/scheduling.php'; // Scheduling, public permalinks, content splitting
 require_once __DIR__ . '/includes/media.php'; // Image upload / WebP conversion / SSRF-guarded remote import

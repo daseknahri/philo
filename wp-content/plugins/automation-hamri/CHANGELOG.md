@@ -3,6 +3,14 @@
 Newest-first. build-v9 is the modular (`includes/*.php`), full-featured product that keeps its
 front-end (SEO/ads/recipe). See `readme.txt` for the WordPress-directory changelog.
 
+## 9.46.0
+
+**Settings-page UX ported from build-final (presentation only).** No option key, default or save handler changed.
+
+### Added
+- `includes/admin-ui.php`: shared `wpap_help_tip()` (moved here from `facebook-page-admin.php`, still `function_exists`-guarded), collapsible-group helpers, shared CSS and a sticky "On this page" nav with scroll-spy.
+- The main settings page is now grouped into collapsible `<details class="wpap-group">` sections (API keys open by default, the rest closed), and every setting row has a hover-help tip with plain-English, step-by-step directions (registered via `wpap_help_tips_extra`).
+
 ## 9.44.0
 
 **Instagram auto-poster + Pinterest pins, ported from build-final 8.87 / 8.82.** Both opt-in and OFF by default; nothing
