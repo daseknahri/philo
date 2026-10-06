@@ -129,6 +129,11 @@ function wpap_fbp_render_settings() {
 				</select></td>
 			</tr>
 			<tr>
+				<th scope="row">Full article <?php echo wpap_help_tip( 'social_full' ); ?></th>
+				<td><?php wpap_social_full_select( 'wpap_fbp_full_every', $o['full_every'] ); ?>
+					<p class="description">Hook + the complete article text; the link stays in the first comment. Per post: the <em>Social post text</em> box in the editor.</p></td>
+			</tr>
+			<tr>
 				<th scope="row">Check it <?php echo wpap_help_tip( 'fbp_test' ); ?></th>
 				<td><button type="button" class="button" data-wpap-fbp="wpap_fbp_test">Test connection</button>
 					<button type="button" class="button" data-wpap-fbp="wpap_fbp_share_now">Share the next post now</button>

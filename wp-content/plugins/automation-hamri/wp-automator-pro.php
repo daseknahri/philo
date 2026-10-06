@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Automation Hamri
  * Description: An advanced AI-powered bulk content generator for WordPress that automates SEO articles, internal linking, and multi-engine image sourcing. Optimized for high-traffic niches.
- * Version:     9.44.2
+ * Version:     9.45.0
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author:      Oussama Hamri
@@ -622,7 +622,7 @@ function wpap_bulk_max_items() {
     return (int) apply_filters( 'wpap_bulk_max_items', 300 );
 }
 
-define( 'WPAP_VERSION', '9.44.2' );
+define( 'WPAP_VERSION', '9.45.0' );
 define( 'WPAP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WPAP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'WPAP_TABLE',      'wpap_generated_posts' );
@@ -887,5 +887,6 @@ require_once __DIR__ . '/includes/ads.php'; // ads.txt, IndexNow, ad zones (shor
 require_once __DIR__ . '/includes/settings-io.php'; // Settings export/import + admin dashboard health widget
 require_once __DIR__ . '/includes/editor-tools.php'; // Gutenberg Author Tools — meta box + derived fields
 require_once __DIR__ . '/includes/facebook-page.php'; // 9.43.0: Facebook Page auto-poster (opt-in; pulls in facebook-page-admin.php)
+require_once __DIR__ . '/includes/social-full.php';   // 9.45.0: full-article Facebook/Instagram posts (opt-in rhythm + per-post override)
 require_once __DIR__ . '/includes/instagram.php';     // 9.44.0: Instagram auto-poster (opt-in; rides on the Facebook Page poster)
 require_once __DIR__ . '/includes/pinterest.php';     // 9.44.0: Pinterest pins (CSV bulk-upload + optional RSS feed; opt-in)
