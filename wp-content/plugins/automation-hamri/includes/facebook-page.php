@@ -44,8 +44,9 @@ function wpap_fbp_opts() {
 		'end'     => $end,
 		'since'   => preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) ( $o['since'] ?? '' ) ) ? (string) $o['since'] : '',
 		'backlog' => ! empty( $o['backlog'] ),
-		'format'  => ( 'link' === ( $o['format'] ?? 'photo' ) ) ? 'link' : 'photo',
-		'full_every' => function_exists( 'wpap_social_full_clean_every' ) ? wpap_social_full_clean_every( $o['full_every'] ?? 0 ) : 0,
+		/* photo = image + hook, link in the first comment; full = image + hook + whole article, link in the comment;
+		   fullcomment = image + hook, the whole article + link in the first comment */
+		'format'  => in_array( $o['format'] ?? '', array( 'full', 'fullcomment' ), true ) ? $o['format'] : 'photo',
 	);
 }
 
@@ -69,8 +70,7 @@ function wpap_fbp_save_from_post() {
 		'end'     => (int) ( $_POST['wpap_fbp_end'] ?? 21 ),                                                     // phpcs:ignore WordPress.Security.NonceVerification
 		'since'   => $since,
 		'backlog' => isset( $_POST['wpap_fbp_backlog'] ) ? 1 : 0,                                               // phpcs:ignore WordPress.Security.NonceVerification
-		'format'  => ( 'link' === ( $_POST['wpap_fbp_format'] ?? '' ) ) ? 'link' : 'photo',                     // phpcs:ignore WordPress.Security.NonceVerification
-		'full_every' => (int) ( $_POST['wpap_fbp_full_every'] ?? 0 ),                                            // phpcs:ignore WordPress.Security.NonceVerification
+		'format'  => in_array( $_POST['wpap_fbp_format'] ?? '', array( 'full', 'fullcomment' ), true ) ? $_POST['wpap_fbp_format'] : 'photo',   // phpcs:ignore WordPress.Security.NonceVerification
 	), false );
 	delete_option( 'wpap_fbp_paused' );   /* saving settings (e.g. a fresh token) resumes a paused poster */
 	delete_transient( 'wpap_fbp_backoff' );
@@ -190,7 +190,7 @@ function wpap_fbp_link( $pid ) {
 	return function_exists( 'wpap_apply_utm' ) ? wpap_apply_utm( wpap_public_permalink( $pid ), $pid ) : get_permalink( $pid );
 }
 
-function wpap_fbp_payload( $pid, $full = false ) {
+function wpap_fbp_payload( $pid, $format = 'photo' ) {
 	$link = wpap_fbp_link( $pid );
 	$hook = html_entity_decode( wp_strip_all_tags( (string) get_post_meta( $pid, '_wpap_fb_hook', true ) ), ENT_QUOTES, 'UTF-8' );
 	$hook = trim( str_replace( '{{link}}', '', $hook ) );
@@ -204,8 +204,8 @@ function wpap_fbp_payload( $pid, $full = false ) {
 		$file = wpap_fbp_image_file( (int) get_post_thumbnail_id( $pid ) );
 	}
 	return array(
-		'caption' => ( $full && function_exists( 'wpap_social_fb_full_caption' ) ) ? wpap_social_fb_full_caption( $pid, $hook ) : $hook,
-		'comment' => wpap_compose_fb_comment( $link, $pid ),
+		'caption' => 'full' === $format ? wpap_social_fb_full_caption( $pid, $hook ) : $hook,
+		'comment' => 'fullcomment' === $format ? wpap_social_fb_full_comment( $pid, wpap_compose_fb_comment( $link, $pid ) ) : wpap_compose_fb_comment( $link, $pid ),
 		'link'    => $link,
 		'image'   => wp_http_validate_url( $img ) ? $img : '',
 		'file'    => $file,
@@ -238,16 +238,15 @@ function wpap_fbp_share( $pid, $o ) {
 	if ( ! add_post_meta( $pid, '_wpap_fbp_done', 'pending', true ) ) {
 		return new WP_Error( 'fbp_busy', 'This post is already being shared.' );
 	}
-	$full = function_exists( 'wpap_social_full_wanted' ) && wpap_social_full_wanted( $pid, 'fbp', $o['full_every'] );
-	$res  = wpap_fbp_publish( wpap_fbp_payload( $pid, $full ), $o );
+	$res = wpap_fbp_publish( wpap_fbp_payload( $pid, $o['format'] ), $o );
 	if ( is_wp_error( $res ) ) { return wpap_fbp_fail( $pid, $res, 'fbp', 'Facebook' ); }
 	wpap_fbp_count_share();
-	if ( function_exists( 'wpap_social_full_count' ) ) { wpap_social_full_count( 'fbp' ); }   /* only successful shares use up the day's slots */
+   /* only successful shares use up the day's slots */
 	update_post_meta( $pid, '_wpap_fbp_done', time() );
 	update_post_meta( $pid, '_wpap_fbp_post_id', $res['post_id'] );
 	$msg = '' !== $res['comment_error'] ? 'posted; first comment failed: ' . $res['comment_error'] : ( $res['commented'] ? 'posted with first comment' : 'posted' );
 	if ( ! $res['card_ok'] ) { $msg .= '; the link preview has no title (' . $res['card_error'] . ')'; }
-	wpap_fbp_log( $pid, 'ok', ( $full ? '[full article] ' : '' ) . $msg );
+	wpap_fbp_log( $pid, 'ok', ( 'photo' !== $o['format'] ? '[full article] ' : '' ) . $msg );
 	return $res;
 }
 
@@ -307,7 +306,7 @@ function wpap_fbp_fail( $pid, WP_Error $res, $ch, $label ) {
 }
 
 function wpap_fbp_publish( $d, $o ) {
-	if ( 'photo' === $o['format'] && ( '' !== $d['file'] || '' !== $d['image'] ) ) {
+	if ( '' !== $d['file'] || '' !== $d['image'] ) {
 		$r = '' !== $d['file']
 			? wpap_fbp_upload( $o['page_id'] . '/photos', array( 'caption' => $d['caption'] ), $d['file'], $o['token'] )
 			: wpap_fbp_call( $o['page_id'] . '/photos', array( 'url' => $d['image'], 'caption' => $d['caption'] ), $o['token'] );
@@ -317,7 +316,7 @@ function wpap_fbp_publish( $d, $o ) {
 		$c      = '' !== $target ? wpap_fbp_call( $target . '/comments', array( 'message' => $d['comment'] ), $o['token'] ) : new WP_Error( 'fbp_api', 'no post id' );
 		return array( 'post_id' => $target, 'comment_error' => is_wp_error( $c ) ? $c->get_error_message() : '', 'card_ok' => true === $card || is_wp_error( $c ), 'card_error' => is_wp_error( $card ) ? $card->get_error_message() : '', 'commented' => true );
 	}
-	/* Link post (or a post with no image): the link preview card carries the click, so no comment is added. */
+	/* A post with no image: the link preview card carries the click, so no comment is added. */
 	$card = wpap_fbp_card_ready( $d['link'], $o['token'] );
 	$r    = wpap_fbp_call( $o['page_id'] . '/feed', array( 'message' => $d['caption'], 'link' => $d['link'] ), $o['token'] );
 	if ( is_wp_error( $r ) ) { return $r; }

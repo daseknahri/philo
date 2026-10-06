@@ -33,7 +33,6 @@ function wpap_igp_opts() {
 		'ig_user'     => (string) ( $o['ig_user'] ?? '' ),
 		'caption_end' => (string) ( $o['caption_end'] ?? 'Full recipe: tap the link in our bio.' ),
 		'hashtags'    => max( 0, min( 10, (int) ( $o['hashtags'] ?? 5 ) ) ),
-		'full_every'  => function_exists( 'wpap_social_full_clean_every' ) ? wpap_social_full_clean_every( $o['full_every'] ?? 0 ) : 0,
 	);
 }
 
@@ -45,7 +44,6 @@ function wpap_igp_save_from_post() {
 		'ig_user'     => '',
 		'caption_end' => mb_substr( sanitize_textarea_field( wp_unslash( $_POST['wpap_igp_caption_end'] ?? '' ) ), 0, 300 ),   // phpcs:ignore WordPress.Security.NonceVerification
 		'hashtags'    => (int) ( $_POST['wpap_igp_hashtags'] ?? 5 ),                                                     // phpcs:ignore WordPress.Security.NonceVerification
-		'full_every'  => (int) ( $_POST['wpap_igp_full_every'] ?? 0 ),                                                   // phpcs:ignore WordPress.Security.NonceVerification
 	), false );
 	delete_option( 'wpap_igp_paused' );   /* saving (e.g. after fixing the token or the link) resumes Instagram */
 	delete_transient( 'wpap_igp_backoff' );
@@ -103,16 +101,14 @@ function wpap_igp_share( $pid, $o ) {
 	if ( is_wp_error( $img ) ) { return wpap_igp_fail( $pid, $img, false ); }
 	$hosted = wpap_igp_hosted_url( $o, $img['path'] );
 	$url    = '' !== $hosted['url'] ? $hosted['url'] : $img['url'];
-	$full   = function_exists( 'wpap_social_full_wanted' ) && wpap_social_full_wanted( $pid, 'igp', wpap_igp_opts()['full_every'] );
-	$res    = wpap_igp_publish( $ig, $url, wpap_igp_caption( $pid, $full ), $o['token'] );
+	$res    = wpap_igp_publish( $ig, $url, wpap_igp_caption( $pid ), $o['token'] );
 	wp_delete_file( $img['path'] );   /* Instagram has its own copy by now */
 	if ( '' !== $hosted['photo_id'] ) { wpap_fbp_call( $hosted['photo_id'], array(), $o['token'], 'DELETE' ); }
 	if ( is_wp_error( $res ) ) { return wpap_igp_fail( $pid, $res, ! empty( $res->get_error_data()['publishing'] ) ); }
 	wpap_fbp_count_share( 'wpap_igp_day' );
-	if ( function_exists( 'wpap_social_full_count' ) ) { wpap_social_full_count( 'igp' ); }
 	update_post_meta( $pid, '_wpap_igp_done', time() );
 	update_post_meta( $pid, '_wpap_igp_media_id', $res['media_id'] );
-	wpap_fbp_log( $pid, 'ok', 'Instagram: posted' . ( $full ? ' [full article]' : '' ) );
+	wpap_fbp_log( $pid, 'ok', 'Instagram: posted' );
 	return $res;
 }
 
@@ -182,8 +178,8 @@ function wpap_igp_publish( $ig, $url, $caption, $token ) {
 	return array( 'media_id' => (string) ( $p['id'] ?? '' ) );
 }
 
-/* Caption: hook, pin description, the "link in bio" line, then hashtags from the post's tags and keywords. */
-function wpap_igp_caption( $pid, $full = false ) {
+/* Caption: the hook, the "link in bio" line, then hashtags from the post's tags and keywords. */
+function wpap_igp_caption( $pid ) {
 	$io    = wpap_igp_opts();
 	$clean = function ( $t ) {
 		$t = html_entity_decode( wp_strip_all_tags( (string) $t ), ENT_QUOTES, 'UTF-8' );
@@ -192,9 +188,6 @@ function wpap_igp_caption( $pid, $full = false ) {
 	};
 	$hook = $clean( get_post_meta( $pid, '_wpap_fb_hook', true ) );
 	if ( '' === $hook ) { $hook = $clean( get_the_title( $pid ) ); }
-	$desc  = $clean( get_post_meta( $pid, '_wpap_pin_description', true ) );
-	if ( '' === $desc && has_excerpt( $pid ) ) { $desc = $clean( wp_trim_words( get_the_excerpt( $pid ), 40, '…' ) ); }   /* build-v9: the meta description lives in the excerpt */
-	if ( $desc === $hook ) { $desc = ''; }
 	$tags  = array();
 	if ( $io['hashtags'] > 0 ) {
 		$post_tags = get_the_tags( $pid );
@@ -206,16 +199,7 @@ function wpap_igp_caption( $pid, $full = false ) {
 			if ( count( $tags ) >= $io['hashtags'] ) { break; }
 		}
 	}
-	$end  = $clean( $io['caption_end'] );
-	$tail = $end . implode( ' ', $tags );
-	if ( $full && function_exists( 'wpap_social_plain_text' ) ) {
-		$body = wpap_social_plain_text( $pid );
-		if ( '' !== $body ) {   /* as much of the article as fits, cut at a sentence, then the ending + hashtags */
-			$body = wpap_social_fit( $body, WPAP_IGP_CAPTION_MAX - mb_strlen( $hook ) - mb_strlen( $tail ) - 8 );
-			if ( '' !== $body ) { $desc = $body; }
-		}
-	}
-	$parts = array( $hook, $desc, $end, implode( ' ', $tags ) );
+	$parts = array( $hook, $clean( $io['caption_end'] ), implode( ' ', $tags ) );   /* Instagram = the image + the hook, always */
 	return mb_substr( implode( "\n\n", array_values( array_filter( $parts, 'strlen' ) ) ), 0, WPAP_IGP_CAPTION_MAX );
 }
 
@@ -330,11 +314,6 @@ function wpap_igp_render_settings() {
 			<tr>
 				<th scope="row">Hashtags <?php echo wpap_help_tip( 'igp_hashtags' ); ?></th>
 				<td><label><input type="number" name="wpap_igp_hashtags" min="0" max="10" class="small-text" value="<?php echo esc_attr( (string) $io['hashtags'] ); ?>" /> from the post's tags (0 = none)</label></td>
-			</tr>
-			<tr>
-				<th scope="row">Full article <?php echo wpap_help_tip( 'social_full' ); ?></th>
-				<td><?php wpap_social_full_select( 'wpap_igp_full_every', $io['full_every'] ); ?>
-					<p class="description">Up to Instagram's 2,200-character caption limit. Per post: the <em>Social post text</em> box in the editor.</p></td>
 			</tr>
 			<tr>
 				<th scope="row">Check it <?php echo wpap_help_tip( 'igp_now' ); ?></th>
