@@ -193,14 +193,20 @@ function wpap_fbp_payload( $pid ) {
 	$hook = html_entity_decode( wp_strip_all_tags( (string) get_post_meta( $pid, '_wpap_fb_hook', true ) ), ENT_QUOTES, 'UTF-8' );
 	$hook = trim( str_replace( '{{link}}', '', $hook ) );
 	if ( '' === $hook ) { $hook = html_entity_decode( get_the_title( $pid ), ENT_QUOTES, 'UTF-8' ); }
-	$img = (string) get_the_post_thumbnail_url( $pid, 'full' );
-	if ( '' === $img ) { $img = (string) get_post_meta( $pid, '_wpap_image_url', true ); }
+	/* the post's own portrait Facebook card first; the blog's featured image when there is none */
+	$img  = (string) get_post_meta( $pid, '_wpap_fb_image_url', true );
+	$file = ( '' !== $img && function_exists( 'wpap_igp_file_for_url' ) ) ? wpap_igp_file_for_url( $img ) : '';
+	if ( '' === $file ) {
+		$img  = (string) get_the_post_thumbnail_url( $pid, 'full' );
+		if ( '' === $img ) { $img = (string) get_post_meta( $pid, '_wpap_image_url', true ); }
+		$file = wpap_fbp_image_file( (int) get_post_thumbnail_id( $pid ) );
+	}
 	return array(
 		'caption' => $hook,
 		'comment' => wpap_compose_fb_comment( $link, $pid ),
 		'link'    => $link,
 		'image'   => wp_http_validate_url( $img ) ? $img : '',
-		'file'    => wpap_fbp_image_file( (int) get_post_thumbnail_id( $pid ) ),
+		'file'    => $file,
 	);
 }
 
