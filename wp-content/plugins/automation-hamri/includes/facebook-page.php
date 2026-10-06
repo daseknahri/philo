@@ -205,7 +205,8 @@ function wpap_fbp_payload( $pid, $format = 'photo' ) {
 	}
 	return array(
 		'caption' => 'full' === $format ? wpap_social_fb_full_caption( $pid, $hook ) : $hook,
-		'comment' => 'fullcomment' === $format ? wpap_social_fb_full_comment( $pid, wpap_compose_fb_comment( $link, $pid ) ) : wpap_compose_fb_comment( $link, $pid ),
+		/* full = the article is the post itself: no comment, no link */
+		'comment' => 'full' === $format ? '' : ( 'fullcomment' === $format ? wpap_social_fb_full_comment( $pid, wpap_compose_fb_comment( $link, $pid ) ) : wpap_compose_fb_comment( $link, $pid ) ),
 		'link'    => $link,
 		'image'   => wp_http_validate_url( $img ) ? $img : '',
 		'file'    => $file,
@@ -312,6 +313,9 @@ function wpap_fbp_publish( $d, $o ) {
 			: wpap_fbp_call( $o['page_id'] . '/photos', array( 'url' => $d['image'], 'caption' => $d['caption'] ), $o['token'] );
 		if ( is_wp_error( $r ) ) { return $r; }
 		$target = (string) ( $r['post_id'] ?? ( $r['id'] ?? '' ) );
+		if ( '' === $d['comment'] ) {
+			return array( 'post_id' => $target, 'comment_error' => '', 'card_ok' => true, 'card_error' => '', 'commented' => false );
+		}
 		$card   = wpap_fbp_card_ready( $d['link'], $o['token'] );   /* read the link first, so the comment's card is complete */
 		$c      = '' !== $target ? wpap_fbp_call( $target . '/comments', array( 'message' => $d['comment'] ), $o['token'] ) : new WP_Error( 'fbp_api', 'no post id' );
 		return array( 'post_id' => $target, 'comment_error' => is_wp_error( $c ) ? $c->get_error_message() : '', 'card_ok' => true === $card || is_wp_error( $c ), 'card_error' => is_wp_error( $card ) ? $card->get_error_message() : '', 'commented' => true );

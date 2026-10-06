@@ -125,7 +125,7 @@ function wpap_fbp_render_settings() {
 				<th scope="row">Post style <?php echo wpap_help_tip( 'fbp_format' ); ?></th>
 				<td><select name="wpap_fbp_format">
 					<option value="photo" <?php selected( $o['format'], 'photo' ); ?>>Image + hook &mdash; link in the first comment</option>
-					<option value="full" <?php selected( $o['format'], 'full' ); ?>>Image + hook + the full article &mdash; link in the first comment</option>
+					<option value="full" <?php selected( $o['format'], 'full' ); ?>>Image + hook + the full article (no link, no comment)</option>
 					<option value="fullcomment" <?php selected( $o['format'], 'fullcomment' ); ?>>Image + hook &mdash; the full article + link in the first comment</option>
 				</select></td>
 			</tr>
@@ -183,7 +183,7 @@ add_filter( 'wpap_help_tips_extra', function ( $t ) {
 		'fbp_schedule' => '<strong>How many posts a day, and when.</strong> Shares are spaced evenly between the two hours (site time). One share at most every 15 minutes.<br><em>Default: 4 a day, 9:00 to 21:00.</em> WordPress runs the schedule when the site gets visits; a quiet site can use an external cron pinger.',
 		'fbp_since'    => '<strong>Where the queue starts.</strong> Posts published on or after this date are shared, oldest first. Set an earlier date to share a batch you already published.<br><em>Default: the day you switch the poster on.</em>',
 		'fbp_backlog'  => '<strong>Keeps the Page busy</strong> after the new posts run out, by sharing older posts, newest first, one slot at a time.<br><em>Default: OFF.</em>',
-		'fbp_format'   => '<strong>Three ways, all with the post\'s image:</strong><br>1. <strong>Image + hook</strong>, link in the first comment &mdash; short, sends readers to the site.<br>2. <strong>Image + hook + full article</strong> in the post text, link in the first comment &mdash; people read it on Facebook (good for a new Page).<br>3. <strong>Image + hook</strong>, the <strong>full article + link</strong> in the first comment &mdash; clean post, the story continues in the comment (Facebook comments stop at ~8,000 characters, so a very long article is cut at a sentence).<br><em>Default: 1.</em>',
+		'fbp_format'   => '<strong>Three ways, all with the post\'s image:</strong><br>1. <strong>Image + hook</strong>, link in the first comment &mdash; short, sends readers to the site.<br>2. <strong>Image + hook + full article</strong> in the post text, no link and no comment &mdash; people read it all on Facebook (good for a new Page).<br>3. <strong>Image + hook</strong>, the <strong>full article + link</strong> in the first comment &mdash; clean post, the story continues in the comment (Facebook comments stop at ~8,000 characters, so a very long article is cut at a sentence).<br><em>Default: 1.</em>',
 		'fbp_test'     => '<strong>Test connection</strong> checks the saved token can see your Page and shows its name. <strong>Share the next post now</strong> posts the next waiting recipe straight away (it counts toward today\'s shares).',
 	) );
 } );
